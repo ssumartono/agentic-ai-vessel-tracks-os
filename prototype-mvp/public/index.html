@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VesselTrack OS</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    
+    <!-- FontAwesome (for icons) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+</head>
+<body>
+    <!-- Global Loader -->
+    <div id="global-loader" class="global-loader view-hidden">
+        <div class="loader-content">
+            <i class="fa-solid fa-ship fa-beat" style="font-size: 3rem; color: var(--accent-blue);"></i>
+            <h2 style="margin-top: 16px; color: var(--text-primary);">Loading VesselTrack OS...</h2>
+            <p style="color: var(--text-secondary); margin-top: 8px;">Establishing secure connection to AIS satellites</p>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    
+    <!-- LOGIN OVERLAY -->
+    <div id="login-overlay" class="login-overlay">
+        <div class="login-card">
+            <div class="login-header">
+                <i class="fa-solid fa-ship" style="font-size: 32px; color: var(--primary-blue);"></i>
+                <h2>VesselTrack <span>OS</span></h2>
+                <p>Maritime Operations Control Room</p>
+            </div>
+            <form id="login-form">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="login-username" value="admin" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="login-password" value="password" required>
+                </div>
+                <div class="form-group">
+                    <label>Role</label>
+                    <select id="login-role">
+                        <option value="Admin">Administrator</option>
+                        <option value="Operator">Operator</option>
+                        <option value="Analyst">Analyst</option>
+                        <option value="Viewer">Viewer</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary w-100">Access System</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="dashboard-container view-hidden" id="main-app-container">
+        
+        <!-- Sidebar -->
+        <aside class="sidebar" id="main-sidebar">
+            <div class="sidebar-header">
+                <span class="logo-text">VesselTrack <span>OS</span></span>
+                <i class="fa-solid fa-angles-left collapse-icon" id="sidebar-collapse-btn"></i>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-target="dashboard-view"><i class="fa-solid fa-house"></i> <span>Dashboard</span></a>
+                <a href="#" class="nav-item" data-target="vessels-view"><i class="fa-solid fa-ship"></i> <span>Vessels</span></a>
+                <a href="#" class="nav-item" data-target="map-view"><i class="fa-solid fa-map"></i> <span>Map</span></a>
+                <a href="#" class="nav-item" data-target="geofences-view"><i class="fa-solid fa-draw-polygon"></i> <span>Geofences</span></a>
+                <a href="#" class="nav-item has-badge" data-target="alerts-view"><i class="fa-solid fa-bell"></i> <span>Alerts</span> <span class="badge" id="sidebar-alert-badge">12</span></a>
+                <a href="#" class="nav-item" data-target="history-view"><i class="fa-solid fa-clock-rotate-left"></i> <span>History</span></a>
+                <a href="#" class="nav-item" data-target="analytics-view"><i class="fa-solid fa-chart-simple"></i> <span>Analytics</span></a>
+                <a href="#" class="nav-item" data-target="settings-view"><i class="fa-solid fa-gear"></i> <span>Settings</span></a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" class="nav-item"><i class="fa-solid fa-arrow-left"></i> <span>Collapse</span></a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            
+            <!-- Default Topbar (For Dashboard, Vessels, Detail) -->
+            <header class="topbar" id="default-topbar">
+                <div class="search-container">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" placeholder="Search vessel, MMSI, IMO, Call Sign...">
+                </div>
+                <div class="topbar-right">
+                    <div class="system-status">
+                        System Status <span class="dot-online"></span> <span class="green-text">Online</span>
+                    </div>
+                    <div class="current-time">
+                        <div class="time" id="clock-time">14:32:15</div>
+                        <div class="date" id="clock-date">21 Jun 2025 (UTC +7)</div>
+                    </div>
+                    <div class="notification-icon">
+                        <i class="fa-solid fa-bell" style="color: #64748b;"></i>
+                        <span class="badge red-badge">12</span>
+                    </div>
+                    <div class="user-profile">
+                        <div class="avatar"><img src="https://i.pravatar.cc/150?img=11" alt="Avatar"></div>
+                        <div class="user-info">
+                            <div class="user-name">Operator <i class="fa-solid fa-chevron-down" style="font-size: 10px; margin-left:4px;"></i></div>
+                            <div class="user-role">Maritime Ops</div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- VESSELS VIEW -->
+            <div class="content-wrapper view-hidden" id="vessels-view">
+                <div class="card table-card" style="margin-top: 20px; flex: 1; display: flex; flex-direction: column;">
+                    <div class="card-header">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                            <h3 class="card-title">Active Vessels</h3>
+                            <input type="text" id="search-dashboard" placeholder="Filter by Name/MMSI..." style="padding:6px 12px; border:1px solid var(--border-color); border-radius:4px;">
+                        </div>
+                        <div style="display:flex; gap: 8px;">
+                            <button class="btn-outline"><i class="fa-solid fa-filter"></i> Filter</button>
+                            <button class="btn-outline"><i class="fa-solid fa-download"></i> Export</button>
+                        </div>
+                    </div>
+                    <div style="flex:1; overflow: auto;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Vessel Name</th>
+                                    <th>MMSI</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>SOG</th>
+                                    <th>Last Seen</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="full-vessel-table-body">
+                                <tr>
+                                    <td colspan="7" style="text-align:center; padding: 40px; color: var(--text-secondary);">
+                                        <i class="fa-solid fa-ship" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                                        <p>No vessels found matching your criteria.</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map View Topbar -->
+            <header class="topbar view-hidden" id="map-topbar">
+                <div class="search-container" style="display:flex; gap: 12px; width: auto; flex:1;">
+                    <div style="position:relative; width: 400px;">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" placeholder="Search vessel, MMSI, IMO, Call Sign, Port...">
+                    </div>
+                    <button class="ui-btn btn-outline" style="background: white;"><i class="fa-solid fa-filter"></i> Filters</button>
+                </div>
+                
+                <div class="topbar-right">
+                    <div class="system-status" style="background: transparent; flex-direction:column; align-items:flex-start; gap:2px;">
+                        <div style="font-size:0.75rem; color:var(--text-secondary);">System Status</div>
+                        <div style="color:var(--status-green); font-size:0.875rem;"><span class="dot-online" style="display:inline-block;"></span> Online</div>
+                    </div>
+                    <div class="current-time" style="border:none;">
+                        <div class="time" id="clock-time-map">14:32:15</div>
+                        <div class="date" id="clock-date-map">27 Jun 2025 (SGT)</div>
+                    </div>
+                    <div class="notification-icon">
+                        <i class="fa-solid fa-bell" style="color: #64748b;"></i>
+                        <span class="badge red-badge">3</span>
+                    </div>
+                    <div class="user-profile">
+                        <div class="avatar"><img src="https://i.pravatar.cc/150?img=11" alt="Avatar"></div>
+                        <div class="user-info">
+                            <div class="user-name">Operator <i class="fa-solid fa-chevron-down" style="font-size: 10px; margin-left:4px;"></i></div>
+                            <div class="user-role">Admin</div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- History View Topbar -->
+            <header class="topbar view-hidden" id="history-topbar">
+                <div class="search-container" style="display:flex; gap: 12px; width: auto; flex:1; align-items:center;">
+                    <a href="#" class="topbar-back-icon" id="history-back-btn"><i class="fa-solid fa-arrow-left"></i></a>
+                    <div style="position:relative; width: 400px;">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" placeholder="Search vessel, MMSI, IMO, Call Sign...">
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <div class="system-status" style="background: transparent;">
+                        <span class="green-text" style="font-size: 0.875rem;">System Status: Online</span>
+                    </div>
+                    <div class="current-time">
+                        <div class="time" id="clock-time-hist">14:32:15</div>
+                        <div class="date" id="clock-date-hist">27 Jun 2025 (UTC +8)</div>
+                    </div>
+                    <div class="notification-icon">
+                        <i class="fa-solid fa-bell" style="color: #64748b;"></i>
+                        <span class="badge red-badge">9</span>
+                    </div>
+                    <div class="user-profile">
+                        <div class="avatar"><img src="https://i.pravatar.cc/150?img=11" alt="Avatar"></div>
+                        <div class="user-info">
+                            <div class="user-name">Operator <i class="fa-solid fa-chevron-down" style="font-size: 10px; margin-left:4px;"></i></div>
+                            <div class="user-role">Admin</div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Geofences View Topbar -->
+            <header class="topbar view-hidden" id="geofences-topbar">
+                <div class="topbar-left" style="display: flex; flex-direction: column; gap: 4px;">
+                    <h1 class="page-title" style="margin:0;">Geofences</h1>
+                    <div style="font-size: 0.875rem; color: var(--text-secondary);">Manage geofenced areas and monitor zone activity</div>
+                </div>
+                <div class="topbar-right" style="gap: 16px;">
+                    <div class="search-container" style="width: 250px;">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" placeholder="Search vessels, MMSI, IMO, Call Sign...">
+                    </div>
+                    <div class="system-status" style="background: transparent; flex-direction:column; align-items:flex-start; gap:2px; padding:0;">
+                        <div style="font-size:0.75rem; color:var(--text-secondary); font-weight: 500;">System Status</div>
+                        <div style="color:var(--status-green); font-size:0.75rem; font-weight: 600;">Online</div>
+                    </div>
+                    <div class="current-time" style="padding: 0 16px;">
+                        <div class="time" id="clock-time-gf" style="font-size: 0.875rem;">14:32:15</div>
+                        <div class="date" id="clock-date-gf">27 Jun 2025 (SGT)</div>
+                    </div>
+                    <div class="notification-icon">
+                        <i class="fa-solid fa-bell" style="color: #64748b;"></i>
+                        <span class="badge red-badge" style="top: -8px;">8</span>
+                    </div>
+                    <div class="user-profile" style="border: 1px solid var(--border-color); padding: 4px 8px 4px 4px; border-radius: 30px;">
+                        <div class="avatar"><img src="https://i.pravatar.cc/150?img=11" alt="Avatar"></div>
+                        <div class="user-info" style="margin-right: 8px;">
+                            <div class="user-name" style="font-size: 0.75rem;">Operator</div>
+                            <div class="user-role" style="font-size: 0.65rem;">VesselTrack OS</div>
+                        </div>
+                        <i class="fa-solid fa-chevron-down" style="font-size: 10px; color: var(--text-secondary);"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Alerts View Topbar -->
+            <header class="topbar view-hidden" id="alerts-topbar">
+                <div class="topbar-left" style="display: flex; flex-direction: column; gap: 4px;">
+                    <h1 class="page-title" style="margin:0;">Alerts</h1>
+                </div>
+                <div class="topbar-right" style="gap: 16px;">
+                    <button class="ui-btn btn-outline" id="mark-all-read-btn" style="background: white;"><i class="fa-solid fa-check"></i> Mark all as read</button>
+                    <div class="notification-icon">
+                        <i class="fa-solid fa-bell" style="color: #64748b;"></i>
+                        <span class="badge red-badge" style="top: -8px;" id="alerts-top-badge">12</span>
+                    </div>
+                    <div class="user-profile" style="border: 1px solid var(--border-color); padding: 4px 8px 4px 4px; border-radius: 30px;">
+                        <div class="avatar"><img src="https://i.pravatar.cc/150?img=11" alt="Avatar"></div>
+                        <div class="user-info" style="margin-right: 8px;">
+                            <div class="user-name" style="font-size: 0.75rem;">Operator</div>
+                            <div class="user-role" style="font-size: 0.65rem; display: flex; align-items: center; gap: 4px;"><span style="display: inline-block; width:6px; height:6px; background:var(--status-green); border-radius:50%;"></span> Online</div>
+                        </div>
+                        <i class="fa-solid fa-chevron-down" style="font-size: 10px; color: var(--text-secondary);"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Analytics View Topbar -->
+            <header class="topbar view-hidden" id="analytics-topbar" style="background: white; border-bottom: 1px solid var(--border-color); padding: 0 32px; height: 70px; display: flex; align-items: center; justify-content: space-between;">
+                <div class="topbar-left" style="display: flex; gap: 16px; align-items: center;">
+                    <button class="ui-btn btn-outline" style="background: white;"><i class="fa-regular fa-calendar"></i> 16/06/2025 <i class="fa-solid fa-arrow-right" style="margin: 0 8px;"></i> 21/06/2025 <i class="fa-solid fa-chevron-down" style="margin-left: 8px;"></i></button>
+                    <select class="ui-select" style="background: white; border-color: var(--border-color); padding: 8px 16px;"><option>All Types</option></select>
+                    <select class="ui-select" style="background: white; border-color: var(--border-color); padding: 8px 16px;"><option>All Areas</option></select>
+                </div>
+                <div class="topbar-right" style="gap: 16px;">
+                    <button class="ui-btn btn-outline" style="background: white;"><i class="fa-solid fa-download"></i> Export</button>
+                    <div class="notification-icon">
+                        <i class="fa-solid fa-bell" style="color: #64748b;"></i>
+                        <span class="badge red-badge" style="top: -8px;">2</span>
+                    </div>
+                    <div class="user-profile" style="border: 1px solid var(--border-color); padding: 4px 8px 4px 4px; border-radius: 30px;">
+                        <div class="avatar"><img src="https://i.pravatar.cc/150?img=11" alt="Avatar"></div>
+                        <div class="user-info" style="margin-right: 8px;">
+                            <div class="user-name" style="font-size: 0.75rem;">Operator</div>
+                            <div class="user-role" style="font-size: 0.65rem; color: var(--text-secondary);">Admin</div>
+                        </div>
+                        <i class="fa-solid fa-chevron-down" style="font-size: 10px; color: var(--text-secondary);"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- =============================== -->
+            <!-- DASHBOARD VIEW -->
+            <!-- =============================== -->
+            <div class="content-wrapper view-active" id="dashboard-view">
+                <!-- ... Dashboard content unchanged ... -->
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-title">Total Vessels</span>
+                            <div class="icon-circle blue"><i class="fa-solid fa-ship"></i></div>
+                        </div>
+                        <div class="stat-value" id="stat-total-vessels">1,248</div>
+                        <div class="stat-trend positive"><i class="fa-solid fa-arrow-up"></i> +4.5% vs previous 7 days</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-title">Vessels In Area</span>
+                            <div class="icon-circle blue"><i class="fa-solid fa-ship"></i></div>
+                        </div>
+                        <div class="stat-value" id="stat-area-vessels">512</div>
+                        <div class="stat-trend positive"><i class="fa-solid fa-arrow-up"></i> +5.6% vs yesterday</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-title">Active Alerts</span>
+                            <div class="icon-circle red"><i class="fa-regular fa-bell"></i></div>
+                        </div>
+                        <div class="stat-value" id="stat-active-alerts">17</div>
+                        <div class="stat-trend negative"><i class="fa-solid fa-triangle-exclamation"></i> 2 critical</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-title">Data Sources</span>
+                            <div class="icon-circle green"><i class="fa-solid fa-tower-broadcast"></i></div>
+                        </div>
+                        <div class="stat-value">5</div>
+                        <div class="stat-trend green-text">All Online</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-title">Last Update</span>
+                            <div class="icon-circle light-blue"><i class="fa-regular fa-clock"></i></div>
+                        </div>
+                        <div class="stat-value" id="stat-last-update">14:32:15</div>
+                        <div class="stat-trend neutral" id="stat-last-update-date">21 Jun 2025 (UTC +7)</div>
+                    </div>
+                </div>
+
+                <!-- Middle Row (Map + Alerts) -->
+                <div class="middle-row">
+                    <div class="card map-card">
+                        <div class="card-header">
+                            <h2 class="card-title">Realtime Map</h2>
+                        </div>
+                        <div class="map-container" id="map"></div>
+                    </div>
+                    
+                    <div class="card alerts-card">
+                        <div class="card-header">
+                            <h2 class="card-title">Alerts Feed</h2>
+                            <a href="#" class="view-all">View all</a>
+                        </div>
+                        <div class="alerts-list" id="alerts-list">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Row (Tables) -->
+                <div class="bottom-row">
+                    <div class="card table-card recent-vessels-card">
+                        <div class="card-header">
+                            <h2 class="card-title">Recent Vessels</h2>
+                            <a href="#" class="view-all">View all</a>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Vessel Name</th>
+                                    <th>MMSI</th>
+                                    <th>Type</th>
+                                    <th>SOG</th>
+                                    <th>COG</th>
+                                    <th>Destination</th>
+                                    <th>Last Update</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vessel-table-body">
+                                <tr>
+                                    <td colspan="7" style="text-align:center; padding: 40px; color: var(--text-secondary);">
+                                        <i class="fa-solid fa-ship" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                                        <p>No recent vessel activity found.</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="card table-card geofence-status-card">
+                        <div class="card-header">
+                            <h2 class="card-title">Geofence Status</h2>
+                            <a href="#" class="view-all">View all</a>
+                        </div>
+                        <table class="data-table geofence-table">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Vessels</th>
+                                    <th>Inside</th>
+                                    <th>Breaching</th>
+                                    <th>Exceeded</th>
+                                </tr>
+                            </thead>
+                            <tbody id="geofence-table-body">
+                                <!-- Static Mocks synced with Geofences Data -->
+                                <tr>
+                                    <td>
+                                        <div class="gf-name"><span class="dot red"></span> Restricted Area Alpha</div>
+                                        <div class="gf-risk red-text">Restricted Zone</div>
+                                    </td>
+                                    <td>0</td>
+                                    <td class="green-text">0</td>
+                                    <td class="orange-text">0</td>
+                                    <td class="red-text">0</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="gf-name"><span class="dot blue"></span> Anchorage Zone 1</div>
+                                        <div class="gf-risk orange-text">Anchorage</div>
+                                    </td>
+                                    <td>12</td>
+                                    <td class="green-text">12</td>
+                                    <td class="orange-text">0</td>
+                                    <td>0</td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="gf-name"><span class="dot orange"></span> Speed Limit Zone</div>
+                                        <div class="gf-risk orange-text">Speed Limit</div>
+                                    </td>
+                                    <td>45</td>
+                                    <td class="green-text">43</td>
+                                    <td class="orange-text">2</td>
+                                    <td>0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <footer class="dashboard-footer">
+                    © 2025 VesselTrack OS. All rights reserved. <span class="version">v2.4.1</span>
+                </footer>
+            </div> <!-- /dashboard-container -->
+
+    <!-- Geofence Editor Modal -->
+    <div class="modal-overlay view-hidden" id="geofence-editor-modal" style="z-index: 10000;">
+        <div class="modal-container" style="width: 800px; max-width: 90vw; background: white; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden;">
+            <div style="padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary);">
+                <h3 style="margin: 0; font-size: 1.25rem;">Create Geofence</h3>
+                <button class="close-modal-btn" id="close-gf-modal" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-secondary);"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div style="display: flex; height: 500px;">
+                <!-- Left Panel Form -->
+                <div style="width: 350px; padding: 20px; border-right: 1px solid var(--border-color); overflow-y: auto;">
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">Geofence Name</label>
+                        <input type="text" id="gf-input-name" class="ui-input" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px;" placeholder="e.g. Anchorage Alpha">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">Type</label>
+                        <select class="ui-select" style="width: 100%; padding: 10px;">
+                            <option>Restricted Area</option>
+                            <option>Anchorage Area</option>
+                            <option>Speed Limit Zone</option>
+                            <option>Prohibited Area</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">Rules</label>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <label><input type="checkbox" checked> Alert on Entry</label>
+                            <label><input type="checkbox" checked> Alert on Exit</label>
+                            <label><input type="checkbox"> Speed Limit (> 10 kn)</label>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">Description</label>
+                        <textarea class="ui-input" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; height: 80px;" placeholder="Notes..."></textarea>
+                    </div>
+                </div>
+                
+                <!-- Right Panel Map -->
+                <div style="flex: 1; position: relative;">
+                    <div id="gf-editor-map" style="width: 100%; height: 100%; background: #e2e8f0;"></div>
+                    <div style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 1000; background: white; padding: 8px 16px; border-radius: 20px; box-shadow: var(--shadow-md); font-size: 13px; font-weight: 500;">
+                        <i class="fa-solid fa-pen-nib"></i> Draw Polygon on Map
+                    </div>
+                </div>
+            </div>
+            
+            <div style="padding: 16px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px; background: var(--bg-secondary);">
+                <button class="btn-outline" id="cancel-gf-modal">Cancel</button>
+                <button class="btn-primary" id="save-gf-modal">Save Geofence</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <!-- ALERT DETAIL DRAWER -->
+    <div id="alert-detail-drawer" class="drawer-overlay view-hidden">
+        <div class="drawer-panel">
+            <div class="drawer-header">
+                <div style="display:flex; align-items:center; gap: 12px;">
+                    <i class="fa-solid fa-bell icon-critical" style="font-size: 20px;" id="alert-drawer-icon"></i>
+                    <div>
+                        <h2 id="alert-drawer-title" style="font-size:18px; margin:0; color:var(--text-primary);">Geofence Breach</h2>
+                        <span class="badge badge-critical" id="alert-drawer-badge">Critical</span>
+                    </div>
+                </div>
+                <button id="close-alert-drawer" style="background:none; border:none; cursor:pointer; font-size: 20px; color:var(--text-secondary);"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="drawer-body" style="padding: 20px; display:flex; flex-direction:column; gap:20px;">
+                <div class="alert-drawer-map" id="alert-drawer-map" style="height: 200px; background:#e2e8f0; border-radius:8px;"></div>
+                <div class="alert-info-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+                    <div><span class="spec-label">Vessel</span><div id="ad-vessel" class="spec-value blue-text">MV SEASTAR</div></div>
+                    <div><span class="spec-label">Time</span><div id="ad-time" class="spec-value">14:32:15 UTC</div></div>
+                    <div><span class="spec-label">Duration</span><div id="ad-duration" class="spec-value">2m ago</div></div>
+                    <div><span class="spec-label">Location</span><div id="ad-loc" class="spec-value">1.3522 N, 103.8198 E</div></div>
+                </div>
+                <div style="border-top: 1px solid var(--border-color); padding-top: 16px;">
+                    <h3 style="font-size: 14px; margin-bottom: 12px; color: var(--text-primary);">Timeline</h3>
+                    <div id="alert-timeline" style="font-size: 13px; color: var(--text-secondary);">
+                        <!-- Injected Timeline -->
+                    </div>
+                </div>
+            </div>
+            <div class="drawer-footer" style="padding: 20px; border-top: 1px solid var(--border-color); display:flex; gap:12px;">
+                <button id="drawer-btn-ack" class="btn-primary" style="flex:1;"><i class="fa-solid fa-check"></i> Acknowledge</button>
+                <button id="drawer-btn-resolve" class="btn-outline" style="flex:1;"><i class="fa-solid fa-flag-checkered"></i> Resolve</button>
+            </div>
+        </div>
+    </div>
+
+            <!-- =============================== -->
+            <!-- VESSELS LIST VIEW -->
+            <!-- =============================== -->
+            <div class="content-wrapper view-hidden" id="vessels-view">
+                <!-- ... Vessels List ... -->
+                <div class="page-header">
+                    <h1 class="page-title">Vessel List</h1>
+                    
+                    <div class="filter-actions">
+                        <select class="ui-select">
+                            <option>All Types</option>
+                            <option>Cargo</option>
+                            <option>Tanker</option>
+                            <option>Passenger</option>
+                        </select>
+                        <select class="ui-select">
+                            <option>All Status</option>
+                            <option>Underway</option>
+                            <option>Moored</option>
+                        </select>
+                        <select class="ui-select">
+                            <option>All Sources</option>
+                            <option>AIS</option>
+                            <option>Satellite</option>
+                        </select>
+                        <button class="ui-btn btn-outline"><i class="fa-solid fa-bars-staggered"></i> Filters</button>
+                        <button class="ui-btn btn-outline"><i class="fa-solid fa-download"></i> Export</button>
+                    </div>
+                </div>
+
+                <div class="list-subtitle">Total 1,248 vessels</div>
+                
+                <div class="card table-card full-height-card">
+                    <div class="table-actions">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" id="search-vessels" placeholder="Search in table...">
+                        <button class="btn btn-secondary"><i class="fa-solid fa-filter"></i> Filter</button> 
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="data-table vessel-list-table">
+                            <thead>
+                                <tr>
+                                    <th>Vessel Name <i class="fa-solid fa-sort"></i></th>
+                                    <th>MMSI <i class="fa-solid fa-sort"></i></th>
+                                    <th>IMO <i class="fa-solid fa-sort"></i></th>
+                                    <th>Type <i class="fa-solid fa-sort"></i></th>
+                                    <th>Flag <i class="fa-solid fa-sort"></i></th>
+                                    <th>Speed <i class="fa-solid fa-sort"></i></th>
+                                    <th>Course <i class="fa-solid fa-sort"></i></th>
+                                    <th>Last Update <i class="fa-solid fa-sort"></i></th>
+                                    <th>Status <i class="fa-solid fa-sort"></i></th>
+                                </tr>
+                            </thead>
+                            <tbody id="full-vessel-table-body">
+                                <!-- Injected by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="pagination">
+                        <div class="pagination-info">Showing 1 to 10 of 1,248 vessels</div>
+                        <div class="pagination-controls">
+                            <button class="page-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                            <button class="page-btn active">1</button>
+                            <button class="page-btn">2</button>
+                            <button class="page-btn">3</button>
+                            <button class="page-btn">4</button>
+                            <button class="page-btn">5</button>
+                            <span class="page-dots">...</span>
+                            <button class="page-btn">125</button>
+                            <button class="page-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div> <!-- /vessels-view -->
+
+            <!-- =============================== -->
+            <!-- VESSEL DETAIL VIEW -->
+            <!-- =============================== -->
+            <div class="content-wrapper view-hidden" id="vessel-detail-view">
+                <!-- ... Vessel Detail Content ... -->
+                <div class="page-header detail-header">
+                    <a href="#" class="back-btn" id="back-to-vessels-btn"><i class="fa-solid fa-arrow-left"></i> Back to list</a>
+                </div>
+
+                <div class="page-header" style="margin-top:-10px;">
+                    <h1 class="page-title">Vessel Detail</h1>
+                    <div class="filter-actions">
+                        <button class="ui-btn btn-outline" style="color: var(--accent-blue);"><i class="fa-solid fa-location-dot"></i> Track on map</button>
+                        <button class="ui-btn btn-outline"><i class="fa-regular fa-star"></i> Add to Watchlist <i class="fa-solid fa-chevron-down" style="font-size:10px; margin-left:4px;"></i></button>
+                    </div>
+                </div>
+
+                <!-- Top Profile Card -->
+                <div class="card detail-profile-card">
+                    
+                    <div class="profile-header">
+                        <img src="https://flagcdn.com/w80/sg.png" class="profile-flag" alt="Singapore">
+                        <div class="profile-title-container">
+                            <h2 class="profile-vessel-name" id="detail-vessel-name">MV SEASTAR 01</h2>
+                            <div class="profile-vessel-type" id="detail-vessel-type">Cargo Ship</div>
+                        </div>
+                    </div>
+
+                    <div class="profile-content-grid">
+                        
+                        <!-- Left Specs Table -->
+                        <div class="profile-specs">
+                            <div class="spec-row">
+                                <span class="spec-label">MMSI</span>
+                                <span class="spec-value blue-text" id="detail-mmsi">563001234</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">IMO</span>
+                                <span class="spec-value">9876543</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Call Sign</span>
+                                <span class="spec-value">9V1234</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Flag</span>
+                                <span class="spec-value">Singapore</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Length x Beam</span>
+                                <span class="spec-value">186m x 28.5m</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Draught</span>
+                                <span class="spec-value">9.2m</span>
+                            </div>
+                        </div>
+
+                        <!-- Center Dynamic Table -->
+                        <div class="profile-specs">
+                            <div class="spec-row">
+                                <span class="spec-label">Vessel Position</span>
+                                <span class="spec-value text-right" id="detail-position">1.3529°N<br>103.8198°E</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Course</span>
+                                <span class="spec-value" id="detail-course">120°</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Speed</span>
+                                <span class="spec-value" id="detail-speed">12.8 kn</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Heading</span>
+                                <span class="spec-value">118°</span>
+                            </div>
+                            <div class="spec-row">
+                                <span class="spec-label">Navigation Status</span>
+                                <span class="spec-value">Underway using engine</span>
+                            </div>
+                        </div>
+
+                        <!-- Right Mini Map -->
+                        <div class="profile-minimap-container">
+                            <div id="mini-map"></div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- VESSEL TABS -->
+                <div class="card" style="margin-top: 20px; flex: 1; display: flex; flex-direction: column; padding: 0;">
+                    <div class="detail-tabs" style="padding: 16px 20px 0 20px; margin: 0; border-bottom: 1px solid var(--border-color); background: var(--bg-secondary); border-radius: 8px 8px 0 0;">
+                        <a href="#" class="tab-item vessel-tab active" data-tab="overview">Overview</a>
+                        <a href="#" class="tab-item vessel-tab" data-tab="history">Track History</a>
+                        <a href="#" class="tab-item vessel-tab" data-tab="alerts">Alerts</a>
+                        <a href="#" class="tab-item vessel-tab" data-tab="geofences">Geofence Events</a>
+                    </div>
+                    
+                    <div class="vessel-tab-content" id="vessel-tab-overview" style="padding: 20px; flex: 1;">
+                        <!-- Overview Grid -->
+                        <div class="overview-grid">
+                            <div class="card info-card">
+                                <div class="info-label">Destination</div>
+                                <div class="info-value"><img src="https://flagcdn.com/w20/sg.png" class="inline-flag"> Singapore</div>
+                                <div class="info-sub-label">ETA</div>
+                                <div class="info-sub-value">2 Jul 2025 09:00 <span class="timezone">(UTC+8)</span></div>
+                            </div>
+                            <div class="card info-card">
+                                <div class="info-label">Source</div>
+                                <div class="info-value"><img src="https://flagcdn.com/w20/cn.png" class="inline-flag"> Shanghai</div>
+                                <div class="info-sub-label">ATD</div>
+                                <div class="info-sub-value">15 Jun 2025 14:30 <span class="timezone">(UTC+8)</span></div>
+                            </div>
+                            <div class="card info-card">
+                                <div class="info-label">Voyage Distance</div>
+                                <div class="info-value">1,450 NM</div>
+                                <div class="info-sub-label">Remaining</div>
+                                <div class="info-sub-value">820 NM</div>
+                            </div>
+                            <div class="card info-card">
+                                <div class="info-label">Current Draft</div>
+                                <div class="info-value">9.2 m</div>
+                                <div class="info-sub-label">Max Draft</div>
+                                <div class="info-sub-value">11.5 m</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="vessel-tab-content view-hidden" id="vessel-tab-history" style="padding: 20px; flex: 1;">
+                        <div id="vessel-history-container" style="display: flex; flex-direction: column; gap: 16px;"></div>
+                    </div>
+                    <div class="vessel-tab-content view-hidden" id="vessel-tab-alerts" style="padding: 20px; flex: 1;">
+                        <div id="vessel-alerts-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
+                    </div>
+                    <div class="vessel-tab-content view-hidden" id="vessel-tab-geofences" style="padding: 20px; flex: 1;">
+                        <div id="vessel-geofences-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
+                    </div>
+                </div>
+
+            </div> <!-- /vessel-detail-view -->
+
+            <!-- =============================== -->
+            <!-- FULL MAP VIEW -->
+            <!-- =============================== -->
+            <div class="content-wrapper view-hidden full-map-wrapper" id="map-view">
+                <!-- ... Full Map Content ... -->
+                <div id="full-screen-map" class="full-screen-map"></div>
+                <div class="map-overlay-top-right">
+                    <button class="ui-btn btn-outline overlay-btn"><i class="fa-solid fa-layer-group"></i></button>
+                    <button class="ui-btn btn-outline overlay-btn"><i class="fa-solid fa-location-crosshairs"></i></button>
+                    <div class="overlay-btn-group">
+                        <button class="ui-btn btn-outline overlay-btn" onclick="fullMap.zoomIn()"><i class="fa-solid fa-plus"></i></button>
+                        <button class="ui-btn btn-outline overlay-btn" onclick="fullMap.zoomOut()"><i class="fa-solid fa-minus"></i></button>
+                    </div>
+                    <button class="ui-btn btn-outline overlay-btn" id="map-btn-measure" title="Measure Distance"><i class="fa-solid fa-ruler"></i></button>
+                    <button class="ui-btn btn-outline overlay-btn" id="map-btn-fullscreen" title="Toggle Fullscreen"><i class="fa-solid fa-expand"></i></button>
+                </div>
+                <div class="map-overlay-top-right-hide">
+                    <button class="ui-btn btn-outline" style="background: white; font-size: 0.75rem;">Hide Panel &raquo;</button>
+                </div>
+                <div class="map-overlay-bottom-left">
+                    <div class="coordinate-display" id="map-coordinates">01° 24.567' N, 103° 45.678' E</div>
+                </div>
+                <div class="map-overlay-bottom-center">
+                    <div class="map-toggles-pill">
+                        <div class="pill-item"><i class="fa-solid fa-layer-group"></i> Layers</div>
+                        <div class="pill-divider"></div>
+                        <div class="pill-item">Vessels <label class="switch"><input type="checkbox" id="toggle-vessels" checked><span class="slider round"></span></label></div>
+                        <div class="pill-divider"></div>
+                        <div class="pill-item">Labels <label class="switch"><input type="checkbox" id="toggle-labels" checked><span class="slider round"></span></label></div>
+                        <div class="pill-divider"></div>
+                        <div class="pill-item">Cluster <label class="switch"><input type="checkbox" id="toggle-cluster" checked><span class="slider round"></span></label></div>
+                    </div>
+                </div>
+                <div class="map-vessel-popup" id="map-vessel-popup" style="display: none;">
+                    <div class="popup-header">
+                        <div class="popup-title">
+                            <div class="vessel-table-icon" id="popup-vessel-icon" style="display:inline-block;"></div>
+                            <span id="popup-vessel-name">MV SEASTAR 01</span>
+                        </div>
+                        <i class="fa-solid fa-xmark close-popup" id="close-map-popup"></i>
+                    </div>
+                    <div class="popup-content">
+                        <div class="spec-row"><span class="spec-label">MMSI</span><span class="spec-value" id="popup-mmsi">563125000</span></div>
+                        <div class="spec-row"><span class="spec-label">IMO</span><span class="spec-value" id="popup-imo">9876543</span></div>
+                        <div class="spec-row"><span class="spec-label">Call Sign</span><span class="spec-value">9V1234</span></div>
+                        <div class="spec-row"><span class="spec-label">Type</span><span class="spec-value" id="popup-type">Cargo Ship</span></div>
+                        <div class="spec-row"><span class="spec-label">COG / SOG</span><span class="spec-value"><span id="popup-cog">245</span>° / <span id="popup-sog">12.5</span> kn</span></div>
+                        <div class="spec-row"><span class="spec-label">Destination</span><span class="spec-value">Singapore</span></div>
+                        <div class="spec-row"><span class="spec-label">ETA</span><span class="spec-value">28 Jun 2025 09:00</span></div>
+                        <div class="spec-row"><span class="spec-label">Status</span><span class="spec-value">Underway using Engine</span></div>
+                    </div>
+                    <div class="popup-footer">
+                        <a href="#" class="view-details-link" id="popup-view-details">View Details <i class="fa-solid fa-chevron-right"></i></a>
+                    </div>
+                </div>
+            </div> <!-- /map-view -->
+
+            <!-- =============================== -->
+            <!-- HISTORY VIEW -->
+            <!-- =============================== -->
+            <div class="content-wrapper view-hidden" id="history-view" style="padding-top: 16px;">
+                
+                <h1 class="page-title" style="margin-bottom: 16px;">History / Playback</h1>
+                
+                <!-- Top Grid (Search Card + Map) -->
+                <div class="history-top-grid">
+                    
+                    <!-- Search Card -->
+                    <div class="card history-search-card">
+                        <h2 class="card-title" style="margin-bottom: 20px;">Vessel Track Search</h2>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Vessel</label>
+                            <div class="custom-select-wrapper">
+                                <i class="fa-solid fa-ship select-icon"></i>
+                                <select class="ui-select full-width has-icon">
+                                    <option>MV SEASTAR 01 (SGSS123456)</option>
+                                    <option>NORTH SEA GIANT (538076543)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Date Range</label>
+                            <div class="date-range-inputs">
+                                <div class="date-input-wrapper">
+                                    <i class="fa-regular fa-calendar date-icon"></i>
+                                    <input type="text" class="ui-input" value="20/06/2025 00:00">
+                                </div>
+                                <span class="date-separator">-</span>
+                                <div class="date-input-wrapper">
+                                    <i class="fa-regular fa-calendar date-icon"></i>
+                                    <input type="text" class="ui-input" value="27/06/2025 23:59">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 32px;">
+                            <label class="form-label">Data Source</label>
+                            <select class="ui-select full-width">
+                                <option>All Sources</option>
+                                <option>AIS Terrestrial</option>
+                                <option>AIS Satellite</option>
+                            </select>
+                        </div>
+
+                        <button class="ui-btn btn-primary full-width"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+                    </div>
+
+                    <!-- Map Card -->
+                    <div class="card history-map-card">
+                        <div class="map-container" id="history-map" style="border-radius: 10px;"></div>
+                        
+                        <!-- Map Legend -->
+                        <div class="history-map-legend">
+                            <div class="legend-item"><span class="dot green"></span> Normal</div>
+                            <div class="legend-item"><span class="dot orange"></span> Slow Speed</div>
+                            <div class="legend-item"><span class="dot red"></span> Alert</div>
+                        </div>
+
+                        <!-- Map Controls -->
+                        <div class="map-overlay-top-right" style="top: 20px;">
+                            <div class="overlay-btn-group">
+                                <button class="ui-btn btn-outline overlay-btn" onclick="historyMap.zoomIn()"><i class="fa-solid fa-plus"></i></button>
+                                <button class="ui-btn btn-outline overlay-btn" onclick="historyMap.zoomOut()"><i class="fa-solid fa-minus"></i></button>
+                            </div>
+                            <button class="ui-btn btn-outline overlay-btn"><i class="fa-solid fa-location-crosshairs"></i></button>
+                            <button class="ui-btn btn-outline overlay-btn"><i class="fa-solid fa-layer-group"></i></button>
+                        </div>
+
+                        <!-- Scale -->
+                        <div class="history-scale-bar">
+                            <div class="scale-line"></div>
+                            <div class="scale-text">300 NM</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Middle Row (Playback Controls) -->
+                <div class="card playback-controls-card">
+                    
+                    <div class="playback-buttons">
+                        <button class="playback-btn"><i class="fa-solid fa-backward-step"></i></button>
+                        <button class="playback-btn"><i class="fa-solid fa-backward-fast"></i></button>
+                        <button class="playback-btn play" id="playback-play-btn"><i class="fa-solid fa-play"></i></button>
+                        <button class="playback-btn"><i class="fa-solid fa-forward-fast"></i></button>
+                        <button class="playback-btn"><i class="fa-solid fa-forward-step"></i></button>
+                    </div>
+
+                    <div class="playback-progress-container">
+                        <input type="range" class="progress-slider" id="playback-slider" min="0" max="100" value="0">
+                    </div>
+
+                    <div class="playback-timestamp" id="playback-timestamp">
+                        20/06/2025 00:00:00
+                    </div>
+
+                </div>
+
+                <!-- Speed & Status under playback -->
+                <div class="playback-options-row">
+                    <div class="playback-speed-control">
+                        <span class="spec-label" style="font-weight: 500;">Speed</span>
+                        <select class="ui-select" style="padding: 4px 24px 4px 8px; font-size: 0.75rem;" id="playback-speed-select">
+                            <option value="1">1x</option>
+                            <option value="5" selected>5x</option>
+                            <option value="10">10x</option>
+                        </select>
+                    </div>
+                    <div class="status-pill" id="playback-status-pill">Paused</div>
+                </div>
+
+                <!-- Bottom Row (Chart) -->
+                <div class="card chart-card" style="display: flex; flex-direction: column; flex: 1;">
+                    <div class="detail-tabs" style="border-bottom: 2px solid var(--border-color); margin-top:0; padding: 0 24px; display: flex;">
+                        <a href="#" class="tab-item" data-chart-metric="position">Position</a>
+                        <a href="#" class="tab-item active" data-chart-metric="speed">Speed</a>
+                        <a href="#" class="tab-item" data-chart-metric="course">Course</a>
+                        <a href="#" class="tab-item" data-chart-metric="wind">Wind</a>
+                    </div>
+                    
+                    <!-- Chart View -->
+                    <div class="chart-container" id="history-chart-container" style="padding: 24px; position: relative; height: 250px;">
+                        <span id="chart-y-axis-label" style="position: absolute; top: 10px; left: 24px; font-size: 0.875rem; font-weight: 600; color: var(--text-secondary);">Speed (kn)</span>
+                        <canvas id="historyChart"></canvas>
+                    </div>
+                </div>
+
+            </div> <!-- /history-view -->
+
+            <!-- =============================== -->
+            <!-- GEOFENCES VIEW -->
+            <!-- =============================== -->
+            <div class="content-wrapper view-hidden" id="geofences-view" style="padding-top: 24px;">
+                
+                <!-- Action Buttons -->
+                <div class="gf-actions-row">
+                    <button class="ui-btn btn-outline" style="background: white;"><i class="fa-solid fa-file-import"></i> Import</button>
+                    <button class="ui-btn btn-outline" id="new-gf-btn" style="color: var(--accent-blue); border-color: var(--accent-blue); background: white;"><i class="fa-solid fa-plus"></i> New Geofence</button>
+                </div>
+
+                <div class="gf-main-grid">
+                    <!-- Left List Card -->
+                    <div class="card gf-list-card">
+                        <div class="gf-list-header">
+                            <div class="detail-tabs" style="margin:0; border-bottom: none; gap:0;">
+                                <a href="#" class="tab-item active" style="padding-bottom:12px; padding-right:12px;">Geofence List</a>
+                            </div>
+                            <div class="filter-actions">
+                                <select class="ui-select"><option>All Status</option></select>
+                                <select class="ui-select"><option>All Types</option></select>
+                                <button class="ui-btn btn-outline"><i class="fa-solid fa-bars-staggered"></i> Filters</button>
+                            </div>
+                        </div>
+                        <div class="table-responsive" style="overflow: visible;">
+                            <table class="data-table gf-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>Status</th>
+                                        <th>Vessels in Area</th>
+                                        <th>Breached</th>
+                                        <th>Last Update</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="gf-table-body">
+                                    <!-- Injected by JS -->
+                                </tbody>
+                            </table>
+                            <div id="dashboard-empty-state" class="empty-state view-hidden">
+                                <i class="fa-solid fa-ship"></i>
+                                <h3>No vessels found</h3>
+                                <p>Adjust your filters or try a different search term.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="pagination">
+                            <div class="pagination-info">Showing 1 to 8 of 28 geofences</div>
+                            <div class="pagination-controls">
+                                <button class="page-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                                <button class="page-btn active">1</button>
+                                <button class="page-btn">2</button>
+                                <button class="page-btn">3</button>
+                                <button class="page-btn">4</button>
+                                <button class="page-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="gf-right-column">
+                        <div class="card gf-preview-card">
+                            <h3 class="card-title" style="padding: 16px 20px;">Geofence Preview</h3>
+                            <div id="gf-preview-map" style="height: 250px; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px;"></div>
+                        </div>
+                        
+                        <div class="card gf-details-card">
+                            <h3 class="card-title" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color);">Geofence Details</h3>
+                            <div class="gf-details-content" id="gf-details-content">
+                                <!-- Injected by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div> <!-- /geofences-view -->
+
+            <!-- =============================== -->
+            <!-- ALERTS VIEW -->
+            <!-- =============================== -->
+            <div class="content-wrapper view-hidden" id="alerts-view" style="padding-top: 24px;">
+                <div class="alerts-main-grid" style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 24px;">
+                    <!-- Left List Column -->
+                    <div class="alerts-left-column" style="display: flex; flex-direction: column; gap: 16px;">
+                        <div class="alerts-filters" style="display: flex; gap: 12px;">
+                            <select class="ui-select" style="flex: 1;"><option>All Status</option></select>
+                            <select class="ui-select" style="flex: 1;"><option>All Type</option></select>
+                            <select class="ui-select" style="flex: 1;"><option>All Priority</option></select>
+                        </div>
+                        <div class="alerts-list-container" id="alerts-list-container" style="display: flex; flex-direction: column; gap: 12px;">
+                            <!-- JS injected alert cards -->
+                        </div>
+                        <div class="pagination" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 20px;">
+                            <div class="pagination-info">Showing 1 to 7 of 12 alerts</div>
+                            <div class="pagination-controls">
+                                <button class="page-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                                <button class="page-btn active">1</button>
+                                <button class="page-btn">2</button>
+                                <button class="page-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Detail Column -->
+                    <div class="alerts-right-column">
+                        <div class="card alerts-detail-card" style="display: flex; flex-direction: column;">
+                            <div class="alerts-detail-header" id="alerts-detail-header" style="display: flex; justify-content: space-between; align-items: flex-start; padding: 20px; border-bottom: 1px solid var(--border-color);">
+                                <!-- JS injected title -->
+                            </div>
+                            <div class="alerts-detail-body" style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 20px; padding: 20px;">
+                                <div class="alerts-detail-table" id="alerts-detail-table" style="display: flex; flex-direction: column; gap: 12px;">
+                                    <!-- JS injected table -->
+                                </div>
+                                <div class="alerts-detail-map" id="alert-preview-map" style="height: 250px; border-radius: 8px; overflow: hidden; background: #e5e7eb;"></div>
+                            </div>
+                            <div class="alerts-action-bar" style="padding: 0 20px 20px 20px;">
+                                <h4 style="margin: 0 0 12px 0; font-size: 0.875rem; color: var(--text-primary);">Action</h4>
+                                <div style="display: flex; gap: 12px;">
+                                    <button class="ui-btn btn-primary" id="btn-ack-alert" style="flex: 1; background: var(--accent-blue); color: white; justify-content: center;"><i class="fa-solid fa-check"></i> Acknowledge</button>
+                                    <button class="ui-btn" id="btn-resolve-alert" style="flex: 1; background: var(--status-green); color: white; border: none; justify-content: center;"><i class="fa-solid fa-check"></i> Resolve</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Tabs -->
+                            <div class="detail-tabs" style="margin: 0 20px;">
+                                <a href="#" class="tab-item active" style="padding-bottom: 12px;">Alert History</a>
+                                <a href="#" class="tab-item" style="padding-bottom: 12px;">Notes</a>
+                            </div>
+                            <div class="alerts-timeline" id="alerts-timeline" style="padding: 20px; border-radius: 0 0 10px 10px; border: 1px solid var(--border-color); border-top: none; margin: 0 20px 20px 20px;">
+                                <!-- JS injected timeline -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div> <!-- /alerts-view -->
+
+            <!-- =============================== -->
+            <!-- ANALYTICS VIEW -->
+            <!-- =============================== -->
+            <div class="content-wrapper view-hidden" id="analytics-view" style="padding: 24px; display: flex; flex-direction: column; gap: 24px; background: #f8fafc; overflow-y: auto;">
+                
+                <!-- KPI ROW -->
+                <div class="analytics-kpi-row" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px;">
+                    <div class="card kpi-card" style="padding: 20px;">
+                        <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">Total Vessels</div>
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--text-primary); margin: 8px 0;">1,248</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);"><span class="trend-up"><i class="fa-solid fa-arrow-up"></i> 4.5%</span> vs previous 7 days</div>
+                    </div>
+                    <div class="card kpi-card" style="padding: 20px;">
+                        <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">Total Distance (NM)</div>
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--text-primary); margin: 8px 0;">125,230 <span style="font-size: 1rem; color: var(--text-secondary); font-weight: 500;">NM</span></div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);"><span class="trend-up"><i class="fa-solid fa-arrow-up"></i> 6.2%</span> vs previous 7 days</div>
+                    </div>
+                    <div class="card kpi-card" style="padding: 20px;">
+                        <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">Avg Speed</div>
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--text-primary); margin: 8px 0;">11.2 <span style="font-size: 1rem; color: var(--text-secondary); font-weight: 500;">kn</span></div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);"><span class="trend-down"><i class="fa-solid fa-arrow-down"></i> 3.1%</span> vs previous 7 days</div>
+                    </div>
+                    <div class="card kpi-card" style="padding: 20px;">
+                        <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">Total Anchoring Time</div>
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--text-primary); margin: 8px 0;">2,340 <span style="font-size: 1rem; color: var(--text-secondary); font-weight: 500;">h</span></div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);"><span class="trend-up"><i class="fa-solid fa-arrow-up"></i> 5.7%</span> vs previous 7 days</div>
+                    </div>
+                    <div class="card kpi-card" style="padding: 20px;">
+                        <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">Total Alerts</div>
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--text-primary); margin: 8px 0;">156</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);"><span class="trend-down"><i class="fa-solid fa-arrow-down"></i> 9.8%</span> vs previous 7 days</div>
+                    </div>
+                </div>
+
+                <!-- MAIN CHARTS GRID 2x2 -->
+                <div class="analytics-main-grid" style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; gap: 24px;">
+                    <!-- Heatmap -->
+                    <div class="card" style="display: flex; flex-direction: column; padding: 20px; height: 350px;">
+                        <h3 style="font-size: 1rem; margin: 0 0 16px 0; color: var(--text-primary);">Vessel Density (Heatmap)</h3>
+                        <div id="analytics-heatmap" style="flex: 1; border-radius: 8px; overflow: hidden; background: #e2e8f0; position: relative;">
+                             <div style="position: absolute; bottom: 10px; right: 10px; background: rgba(255,255,255,0.8); padding: 4px 8px; font-size: 0.75rem; border: 1px solid #ccc; z-index: 1000; border-radius: 4px;">500 NM</div>
+                        </div>
+                    </div>
+
+                    <!-- Line Chart -->
+                    <div class="card" style="display: flex; flex-direction: column; padding: 20px; height: 350px;">
+                        <h3 style="font-size: 1rem; margin: 0 0 16px 0; color: var(--text-primary);">Vessel Count Over Time</h3>
+                        <div style="flex: 1; position: relative;">
+                            <canvas id="vesselCountChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Doughnut Chart -->
+                    <div class="card" style="display: flex; flex-direction: column; padding: 20px; height: 350px;">
+                        <h3 style="font-size: 1rem; margin: 0 0 16px 0; color: var(--text-primary);">Top Vessel Types</h3>
+                        <div style="flex: 1; display: flex; align-items: center; justify-content: center; position: relative;">
+                            <div style="width: 50%; position: relative; height: 100%;">
+                                <canvas id="vesselTypesChart"></canvas>
+                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 500;">Total Vessels</div>
+                                    <div style="font-size: 1.25rem; color: var(--text-primary); font-weight: 700;">1,248</div>
+                                </div>
+                            </div>
+                            <div style="width: 50%; padding-left: 24px; display: flex; flex-direction: column; justify-content: center; gap: 16px;" id="vessel-types-legend">
+                                <div style="display: flex; justify-content: space-between; align-items: center;"><div style="display: flex; align-items: center; gap: 8px;"><span style="width:12px;height:12px;background:#3b82f6;border-radius:2px;"></span> <span style="font-size: 0.875rem; color: var(--text-primary);">Cargo</span></div> <span style="font-size: 0.875rem; color: var(--text-secondary);">40.0%</span></div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;"><div style="display: flex; align-items: center; gap: 8px;"><span style="width:12px;height:12px;background:#a855f7;border-radius:2px;"></span> <span style="font-size: 0.875rem; color: var(--text-primary);">Tanker</span></div> <span style="font-size: 0.875rem; color: var(--text-secondary);">25.0%</span></div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;"><div style="display: flex; align-items: center; gap: 8px;"><span style="width:12px;height:12px;background:#22c55e;border-radius:2px;"></span> <span style="font-size: 0.875rem; color: var(--text-primary);">Fishing</span></div> <span style="font-size: 0.875rem; color: var(--text-secondary);">15.0%</span></div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;"><div style="display: flex; align-items: center; gap: 8px;"><span style="width:12px;height:12px;background:#f59e0b;border-radius:2px;"></span> <span style="font-size: 0.875rem; color: var(--text-primary);">Tug</span></div> <span style="font-size: 0.875rem; color: var(--text-secondary);">10.0%</span></div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;"><div style="display: flex; align-items: center; gap: 8px;"><span style="width:12px;height:12px;background:#94a3b8;border-radius:2px;"></span> <span style="font-size: 0.875rem; color: var(--text-primary);">Others</span></div> <span style="font-size: 0.875rem; color: var(--text-secondary);">10.0%</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stacked Bar Chart -->
+                    <div class="card" style="display: flex; flex-direction: column; padding: 20px; height: 350px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <h3 style="font-size: 1rem; margin: 0; color: var(--text-primary);">Alert Trend</h3>
+                            <div style="display: flex; gap: 12px;">
+                                <div style="display: flex; align-items: center; gap: 6px;"><span style="width:10px;height:10px;background:#ef4444;border-radius:2px;"></span><span style="font-size:0.75rem; color: var(--text-secondary);">Critical</span></div>
+                                <div style="display: flex; align-items: center; gap: 6px;"><span style="width:10px;height:10px;background:#f59e0b;border-radius:2px;"></span><span style="font-size:0.75rem; color: var(--text-secondary);">Warning</span></div>
+                                <div style="display: flex; align-items: center; gap: 6px;"><span style="width:10px;height:10px;background:#3b82f6;border-radius:2px;"></span><span style="font-size:0.75rem; color: var(--text-secondary);">Info</span></div>
+                            </div>
+                        </div>
+                        <div style="flex: 1; position: relative;">
+                            <canvas id="alertTrendChart"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+            </div> <!-- /analytics-view -->
+
+            <!-- =============================== -->
+            <!-- SETTINGS VIEW -->
+            <!-- =============================== -->
+            <div class="content-wrapper view-hidden" id="settings-view" style="padding: 32px 40px; background: #ffffff; overflow-y: auto; display: flex; flex-direction: column;">
+                <div style="margin-bottom: 24px;">
+                    <div style="font-size: 0.85rem; color: var(--primary-blue); font-weight: 500; margin-bottom: 8px;">Settings</div>
+                    <h1 style="font-size: 1.75rem; color: var(--text-primary); margin: 0; font-weight: 700;">Users & Roles</h1>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid var(--border-color); margin-bottom: 24px; padding-bottom: 0;">
+                    <div class="settings-tabs" style="display: flex; gap: 32px;">
+                        <div class="settings-tab active" data-tab="users" style="padding-bottom: 16px; cursor: pointer; font-weight: 500; position: relative;">Users</div>
+                        <div class="settings-tab" data-tab="roles" style="padding-bottom: 16px; cursor: pointer; font-weight: 500; position: relative; color: var(--text-secondary);">Roles</div>
+                        <div class="settings-tab" data-tab="permissions" style="padding-bottom: 16px; cursor: pointer; font-weight: 500; position: relative; color: var(--text-secondary);">Permissions</div>
+                    </div>
+                    <div style="padding-bottom: 16px;">
+                        <button class="ui-btn btn-outline" id="btn-add-user" style="color: var(--primary-blue); border-color: var(--border-color);"><i class="fa-solid fa-plus"></i> Add User</button>
+                    </div>
+                </div>
+
+                <!-- Users Tab Content -->
+                <div id="settings-tab-users" class="settings-tab-content">
+                    <div class="card" style="padding: 0; overflow: visible; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border-color);">
+                        <table class="settings-table" style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--border-color); text-align: left; color: var(--text-secondary); font-size: 0.85rem; background: #fafafa;">
+                                    <th style="padding: 16px 24px; font-weight: 500;">Username</th>
+                                    <th style="padding: 16px 24px; font-weight: 500;">Full Name</th>
+                                    <th style="padding: 16px 24px; font-weight: 500;">Email</th>
+                                    <th style="padding: 16px 24px; font-weight: 500;">Role</th>
+                                    <th style="padding: 16px 24px; font-weight: 500;">Status</th>
+                                    <th style="padding: 16px 24px; font-weight: 500;">Last Login</th>
+                                    <th style="padding: 16px 24px; font-weight: 500; text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body" style="font-size: 0.875rem;">
+                                <!-- Rendered via JS -->
+                            </tbody>
+                        </table>
+                        <div class="pagination-footer" style="padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); font-size: 0.875rem; color: var(--text-secondary);">
+                            <div>Showing 1 to 10 of 18 users</div>
+                            <div class="pagination-controls" style="display: flex; gap: 8px;">
+                                <button class="page-btn" style="padding: 4px 10px; background: white; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; color: var(--text-secondary);"><i class="fa-solid fa-chevron-left"></i></button>
+                                <button class="page-btn active" style="padding: 4px 10px; background: white; border: 1px solid var(--primary-blue); border-radius: 4px; cursor: pointer; color: var(--primary-blue); font-weight: bold;">1</button>
+                                <button class="page-btn" style="padding: 4px 10px; background: white; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; color: var(--text-secondary);">2</button>
+                                <button class="page-btn" style="padding: 4px 10px; background: white; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; color: var(--text-secondary);">3</button>
+                                <button class="page-btn" style="padding: 4px 10px; background: white; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; color: var(--text-secondary);">4</button>
+                                <button class="page-btn" style="padding: 4px 10px; background: white; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; color: var(--text-secondary);"><i class="fa-solid fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Roles Tab Content -->
+                <div id="settings-tab-roles" class="settings-tab-content view-hidden">
+                    <div class="card" style="padding: 0; overflow: visible; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border-color);">
+                        <table class="settings-table" style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--border-color); text-align: left; color: var(--text-secondary); font-size: 0.85rem; background: #fafafa;">
+                                    <th style="padding: 16px 24px; font-weight: 500;">Role Name</th>
+                                    <th style="padding: 16px 24px; font-weight: 500;">Description</th>
+                                    <th style="padding: 16px 24px; font-weight: 500;">Users Assigned</th>
+                                    <th style="padding: 16px 24px; font-weight: 500; text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="roles-table-body" style="font-size: 0.875rem;">
+                                <!-- Rendered via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Permissions Tab Content -->
+                <div id="settings-tab-permissions" class="settings-tab-content view-hidden">
+                    <div class="card" style="padding: 0; overflow: visible; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border-color);">
+                        <table class="settings-table" style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--border-color); text-align: left; color: var(--text-secondary); font-size: 0.85rem; background: #fafafa;">
+                                    <th style="padding: 16px 24px; font-weight: 500;">Module</th>
+                                    <th style="padding: 16px 24px; font-weight: 500; text-align: center;">Administrator</th>
+                                    <th style="padding: 16px 24px; font-weight: 500; text-align: center;">Operator</th>
+                                    <th style="padding: 16px 24px; font-weight: 500; text-align: center;">Supervisor</th>
+                                    <th style="padding: 16px 24px; font-weight: 500; text-align: center;">Analyst</th>
+                                    <th style="padding: 16px 24px; font-weight: 500; text-align: center;">Viewer</th>
+                                </tr>
+                            </thead>
+                            <tbody id="permissions-table-body" style="font-size: 0.875rem;">
+                                <!-- Rendered via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div> <!-- /settings-view -->
+
+        </main>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <!-- Leaflet Heatmap Plugin -->
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- New Geofence Modal -->
+    <div class="modal-overlay view-hidden" id="geofence-modal">
+        <div class="modal-container" style="width: 500px; background: white; border-radius: 8px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; flex-direction: column;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin: 0; font-size: 1.25rem;">Create New Geofence</h3>
+                <button class="modal-close" id="close-gf-modal" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--text-secondary);"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="gf-form" style="display: flex; flex-direction: column; gap: 16px;">
+                    <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                        <label style="font-size: 0.875rem; font-weight: 500; color: var(--text-primary);">Geofence Name</label>
+                        <input type="text" class="ui-input" placeholder="e.g. South China Sea High Risk" style="padding: 10px; border: 1px solid var(--border-color); border-radius: 6px;">
+                    </div>
+                    <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                        <label style="font-size: 0.875rem; font-weight: 500; color: var(--text-primary);">Type</label>
+                        <select class="ui-select" style="padding: 10px; border: 1px solid var(--border-color); border-radius: 6px;">
+                            <option>Restricted Area</option>
+                            <option>Anchorage Area</option>
+                            <option>Traffic Separation Scheme</option>
+                            <option>High Risk Area</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                        <label style="font-size: 0.875rem; font-weight: 500; color: var(--text-primary);">Status</label>
+                        <select class="ui-select" style="padding: 10px; border: 1px solid var(--border-color); border-radius: 6px;">
+                            <option>Active</option>
+                            <option>Pending</option>
+                            <option>Inactive</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="display: flex; flex-direction: column; gap: 6px;">
+                        <label style="font-size: 0.875rem; font-weight: 500; color: var(--text-primary);">Description</label>
+                        <textarea class="ui-input" rows="3" placeholder="Additional details..." style="padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; resize: vertical;"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 12px; padding-top: 20px; margin-top: 10px; border-top: 1px solid var(--border-color);">
+                <button class="ui-btn btn-outline" id="cancel-gf-btn" style="background: white;">Cancel</button>
+                <button class="ui-btn btn-primary" id="save-gf-btn" style="background: var(--accent-blue); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 500;">Save Geofence</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div class="modal-overlay view-hidden" id="add-user-modal">
+        <div class="modal-container" style="width: 500px; background: white; border-radius: 8px; padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h3 style="margin: 0; font-size: 1.25rem;">Add New User</h3>
+                <button class="close-modal-btn" id="close-add-user-modal" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-secondary);"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-size: 0.875rem; font-weight: 500;">Username</label>
+                <input type="text" class="ui-input" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px;" placeholder="Enter username">
+            </div>
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-size: 0.875rem; font-weight: 500;">Full Name</label>
+                <input type="text" class="ui-input" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px;" placeholder="Enter full name">
+            </div>
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-size: 0.875rem; font-weight: 500;">Email</label>
+                <input type="email" class="ui-input" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px;" placeholder="Enter email address">
+            </div>
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-size: 0.875rem; font-weight: 500;">Role</label>
+                <select class="ui-select" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px;">
+                    <option>Operator</option>
+                    <option>Supervisor</option>
+                    <option>Analyst</option>
+                    <option>Administrator</option>
+                    <option>Viewer</option>
+                </select>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px;">
+                <button class="ui-btn btn-outline" id="cancel-add-user-btn">Cancel</button>
+                <button class="ui-btn btn-primary" id="save-user-btn" style="background: var(--primary-blue); color: white;">Save User</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Action Dropdown Template -->
+    <div id="action-dropdown" class="view-hidden" style="position: absolute; background: white; border: 1px solid var(--border-color); border-radius: 4px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); width: 150px; z-index: 1000;">
+        <div class="dropdown-item" style="padding: 10px 16px; cursor: pointer; font-size: 0.875rem; color: var(--text-primary);"><i class="fa-solid fa-pen" style="margin-right: 8px; color: var(--text-secondary);"></i> Edit</div>
+        <div class="dropdown-item" style="padding: 10px 16px; cursor: pointer; font-size: 0.875rem; color: var(--text-primary);"><i class="fa-solid fa-key" style="margin-right: 8px; color: var(--text-secondary);"></i> Reset Password</div>
+        <div class="dropdown-item" style="padding: 10px 16px; cursor: pointer; font-size: 0.875rem; color: var(--status-red); border-top: 1px solid var(--border-color);"><i class="fa-solid fa-trash" style="margin-right: 8px; color: var(--status-red);"></i> Delete</div>
+    </div>
+
+    <!-- App JS -->
+    <script src="js/app.js?v=2"></script>
+</body>
+</html>
