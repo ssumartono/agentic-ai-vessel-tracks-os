@@ -78,6 +78,99 @@ app.get('/api/alerts', (req, res) => {
     });
 });
 
+// --- USER MANAGEMENT ENDPOINTS ---
+
+// Login
+app.post('/api/auth/login', (req, res) => {
+    const { username, password } = req.body;
+    const query = `SELECT id, username, role FROM users WHERE username = ? AND password_hash = ?`;
+    // In a real app, use bcrypt.compare instead of matching plain/hashed text directly
+    db.get(query, [username, password], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!row) return res.status(401).json({ error: 'Invalid credentials' });
+        res.json({ message: 'Login successful', user: row });
+    });
+});
+
+// Get all users
+app.get('/api/users', (req, res) => {
+    db.all('SELECT id, username, role, created_by, created_at FROM users', [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Create new user
+app.post('/api/users', (req, res) => {
+    const { username, password, role, created_by } = req.body;
+    const query = `INSERT INTO users (username, password_hash, role, created_by) VALUES (?, ?, ?, ?)`;
+    db.run(query, [username, password, role, created_by || 'system'], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ id: this.lastID, username, role, created_by: created_by || 'system' });
+    });
+});
+
+// Update user
+app.put('/api/users/:id', (req, res) => {
+    const { role, password } = req.body;
+    
+    if (password && password.trim() !== '') {
+        const query = `UPDATE users SET role = ?, password_hash = ? WHERE id = ?`;
+        db.run(query, [role, password, req.params.id], function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: 'User updated (with password)' });
+        });
+    } else {
+        const query = `UPDATE users SET role = ? WHERE id = ?`;
+        db.run(query, [role, req.params.id], function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: 'User updated' });
+        });
+    }
+});
+
+// Delete user
+app.delete('/api/users/:id', (req, res) => {
+    const query = `DELETE FROM users WHERE id = ?`;
+    db.run(query, [req.params.id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'User deleted' });
+    });
+});
+
+// Get permissions
+app.get('/api/permissions', (req, res) => {
+    db.all('SELECT module, role, is_granted FROM permissions', [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        const result = {};
+        rows.forEach(r => {
+            if (!result[r.module]) {
+                result[r.module] = { module: r.module };
+            }
+            result[r.module][r.role] = r.is_granted === 1;
+        });
+        res.json(Object.values(result));
+    });
+});
+
+// Update permissions (bulk)
+app.put('/api/permissions', (req, res) => {
+    const updates = req.body; // Expect array: [{module, role, is_granted}, ...]
+    if (!Array.isArray(updates)) return res.status(400).json({ error: 'Expected array of updates' });
+    
+    db.serialize(() => {
+        const stmt = db.prepare('UPDATE permissions SET is_granted = ? WHERE module = ? AND role = ?');
+        for (const u of updates) {
+            stmt.run(u.is_granted ? 1 : 0, u.module, u.role);
+        }
+        stmt.finalize((err) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: 'Permissions updated successfully' });
+        });
+    });
+});
+
+
 // --- WEBSOCKET SERVER ---
 // Broadcasts updates to all connected clients
 wss.broadcast = function broadcast(data) {

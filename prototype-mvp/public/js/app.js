@@ -236,80 +236,130 @@ function setupLogin() {
     const mainApp = document.getElementById('main-app-container');
     const globalLoader = document.getElementById('global-loader');
     
-    // Inject Role Selector into all user-info blocks
-    document.querySelectorAll('.user-info').forEach(info => {
-        info.innerHTML = `
-            <div class="user-name">User Profile</div>
-            <select class="role-selector" style="background:transparent; border:none; color:var(--text-secondary); font-size:0.75rem; padding:0; outline:none; cursor:pointer;">
-                <option value="admin">Administrator</option>
-                <option value="operator" selected>Operator</option>
-                <option value="analyst">Analyst</option>
-                <option value="viewer">Viewer</option>
-            </select>
-        `;
-    });
-
-    document.querySelectorAll('.role-selector').forEach(select => {
-        select.addEventListener('change', (e) => {
-            const role = e.target.value;
-            applyRolePermissions(role);
-            // Sync all other selectors
-            document.querySelectorAll('.role-selector').forEach(sel => sel.value = role);
-            showToast('Role Updated', `You are now simulating the ${role.toUpperCase()} role.`);
-        });
-    });
-    
     if(loginForm) {
-        loginForm.addEventListener('submit', (e) => {
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            loginOverlay.classList.add('view-hidden');
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
             
-            // Show loader
+            loginOverlay.classList.add('view-hidden');
             globalLoader.classList.remove('view-hidden');
             
-            setTimeout(() => {
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Wait for permissions to be loaded before rendering
+                    await loadPermissions();
+                    
+                    setTimeout(() => {
+                        globalLoader.classList.add('view-hidden');
+                        mainApp.classList.remove('view-hidden');
+                        
+                        applyRolePermissions(data.user.role);
+                        
+                        // Set display name in all topbars
+                        document.querySelectorAll('.user-name').forEach(el => {
+                            el.innerHTML = data.user.username + ' <i class="fa-solid fa-chevron-down" style="font-size: 10px; margin-left:4px;"></i>';
+                        });
+                        document.querySelectorAll('.user-role').forEach(el => {
+                            el.innerHTML = data.user.role.charAt(0).toUpperCase() + data.user.role.slice(1);
+                        });
+
+                        showToast('Welcome to VesselTrack', 'Secure connection established.');
+                        
+                        if(typeof map !== 'undefined' && map) map.invalidateSize();
+                        if(typeof fullMap !== 'undefined' && fullMap) fullMap.invalidateSize();
+                        if(typeof historyMap !== 'undefined' && historyMap) historyMap.invalidateSize();
+                        if(typeof analyticsHeatmap !== 'undefined' && analyticsHeatmap) analyticsHeatmap.invalidateSize();
+                        
+                    }, 500); 
+                } else {
+                    globalLoader.classList.add('view-hidden');
+                    loginOverlay.classList.remove('view-hidden');
+                    alert('Login failed: ' + (data.error || 'Invalid credentials'));
+                }
+            } catch (error) {
                 globalLoader.classList.add('view-hidden');
-                mainApp.classList.remove('view-hidden');
-                
-                // Initialize default role
-                applyRolePermissions('operator');
-                showToast('Welcome to VesselTrack', 'Establishing secure AIS connection...');
-                
-                // Re-invalidate maps to fix sizing issues due to display:none
-                if(typeof map !== 'undefined' && map) map.invalidateSize();
-                if(typeof fullMap !== 'undefined' && fullMap) fullMap.invalidateSize();
-                if(typeof historyMap !== 'undefined' && historyMap) historyMap.invalidateSize();
-                if(typeof analyticsHeatmap !== 'undefined' && analyticsHeatmap) analyticsHeatmap.invalidateSize();
-                
-            }, 1500); // 1.5s simulated loading
+                loginOverlay.classList.remove('view-hidden');
+                alert('Login error: ' + error.message);
+            }
+        });
+    }
+
+    const btnLogout = document.getElementById('btn-logout');
+    if (btnLogout) {
+        btnLogout.addEventListener('click', () => {
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+            mainApp.classList.add('view-hidden');
+            loginOverlay.classList.remove('view-hidden');
+            showToast('Logged Out', 'You have been securely logged out.');
         });
     }
 }
 
 function applyRolePermissions(role) {
+    // Mapping from permissions table modules to UI view targets
+    const moduleTargetMap = {
+        'Dashboard': 'dashboard-view',
+        'Vessel Tracking': 'vessels-view',
+        'Live Map': 'map-view',
+        'Geofence Management': 'geofences-view',
+        'Alert Acknowledgment': 'alerts-view',
+        'History (Playback)': 'history-view',
+        'Analytics Dashboard': 'analytics-view',
+        'User Management': 'settings-view',
+        'About': 'about-view'
+    };
+
+    // Which targets are allowed for the current role
+    const allowedTargets = new Set();
+    
+    permissionsList.forEach(perm => {
+        const target = moduleTargetMap[perm.module];
+        if (target && perm[role]) {
+            allowedTargets.add(target);
+        }
+    });
+
     // Hide/Show sidebar navigation based on role
     const sidebarItems = document.querySelectorAll('.sidebar-nav .nav-item');
     sidebarItems.forEach(item => {
-        const target = item.getAttribute('data-target');
-        item.style.display = 'flex'; // default
+        const targetView = item.getAttribute('data-target');
         
-        if (role === 'operator') {
-            if (target === 'analytics' || target === 'settings') item.style.display = 'none';
-        } else if (role === 'analyst') {
-            if (target === 'settings' || target === 'geofence') item.style.display = 'none';
-        } else if (role === 'viewer') {
-            if (target === 'analytics' || target === 'settings' || target === 'geofence') item.style.display = 'none';
+        if (allowedTargets.has(targetView)) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+
+    // Hide/Show About cards based on role
+    const aboutCards = document.querySelectorAll('#about-view .card');
+    aboutCards.forEach(card => {
+        const targetView = card.getAttribute('data-about-target');
+        
+        if (allowedTargets.has(targetView)) {
+            card.style.display = 'flex';
+        } else {
+            card.style.display = 'none';
         }
     });
 
     // Handle view fallback if current view is hidden
     const activeView = document.querySelector('.content-wrapper:not(.view-hidden)');
-    const activeTarget = activeView ? activeView.id.replace('-view', '') : 'dashboard';
+    const activeTargetId = activeView ? activeView.id : 'dashboard-view';
     
-    const activeNavItem = document.querySelector(`.sidebar-nav .nav-item[data-target="${activeTarget}"]`);
+    const activeNavItem = document.querySelector(`.sidebar-nav .nav-item[data-target="${activeTargetId}"]`);
     if (activeNavItem && activeNavItem.style.display === 'none') {
         // Fallback to dashboard
-        document.querySelector(`.sidebar-nav .nav-item[data-target="dashboard"]`).click();
+        document.querySelector(`.sidebar-nav .nav-item[data-target="dashboard-view"]`).click();
     }
 }
 
@@ -377,6 +427,23 @@ function setupNavigation() {
         });
     }
 
+    const trackOnMapBtn = document.getElementById('track-on-map-btn');
+    if (trackOnMapBtn) {
+        trackOnMapBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            navItems.forEach(nav => nav.classList.remove('active'));
+            const mapNav = document.querySelector('.nav-item[data-target="map-view"]');
+            if (mapNav) mapNav.classList.add('active');
+            switchToView('map-view');
+            
+            if (currentDetailMmsi && vesselsData[currentDetailMmsi]) {
+                const v = vesselsData[currentDetailMmsi];
+                fullMap.setView([v.lat, v.lon], 14);
+                showMapPopup(v, getVesselColor(v.type));
+            }
+        });
+    }
+
     tabItems.forEach(tab => {
         tab.addEventListener('click', (e) => {
             e.preventDefault();
@@ -385,6 +452,49 @@ function setupNavigation() {
             tab.classList.add('active');
         });
     });
+
+    // Sidebar Collapse Logic
+    const sidebar = document.getElementById('main-sidebar');
+    const collapseTopBtn = document.getElementById('sidebar-collapse-btn');
+    const collapseFooterBtn = document.getElementById('sidebar-collapse-footer-btn');
+
+    function toggleSidebar() {
+        sidebar.classList.toggle('collapsed');
+        const isCollapsed = sidebar.classList.contains('collapsed');
+        
+        if (collapseTopBtn) {
+            collapseTopBtn.classList.toggle('fa-angles-left', !isCollapsed);
+            collapseTopBtn.classList.toggle('fa-angles-right', isCollapsed);
+        }
+        
+        if (collapseFooterBtn) {
+            const icon = collapseFooterBtn.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('fa-arrow-left', !isCollapsed);
+                icon.classList.toggle('fa-arrow-right', isCollapsed);
+            }
+        }
+
+        // Trigger map resizes after transition
+        setTimeout(() => {
+            if (map) map.invalidateSize();
+            if (fullMap) fullMap.invalidateSize();
+            if (historyMap) historyMap.invalidateSize();
+            if (geofencePreviewMap) geofencePreviewMap.invalidateSize();
+            if (alertPreviewMap) alertPreviewMap.invalidateSize();
+        }, 300);
+    }
+
+    if (collapseTopBtn) {
+        collapseTopBtn.addEventListener('click', toggleSidebar);
+    }
+    
+    if (collapseFooterBtn) {
+        collapseFooterBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleSidebar();
+        });
+    }
 }
 
 function switchToView(viewId) {
@@ -411,6 +521,9 @@ function switchToView(viewId) {
         if(analyticsTopbar) analyticsTopbar.classList.remove('view-hidden');
     } else if (viewId === 'settings-view') {
         // Settings doesn't use the standard topbar, it has its own clean header
+        setTimeout(() => {
+            if (typeof loadUsers === 'function') loadUsers();
+        }, 100);
     } else {
         if(defaultTopbar) defaultTopbar.classList.remove('view-hidden');
     }
@@ -607,11 +720,14 @@ function generateHistoryData() {
     const timeStep = 3600000; 
 
     let totalSegments = waypoints.length - 1;
-    let pointsPerSegment = Math.floor(150 / totalSegments);
+    let pointsPerSegment = 50;
 
     for (let w = 0; w < totalSegments; w++) {
         let p1 = waypoints[w];
         let p2 = waypoints[w+1];
+        
+        let isAnchoring = (w === 4);
+
         for (let i = 0; i < pointsPerSegment; i++) {
             let frac = i / pointsPerSegment;
             let lat = p1[0] + (p2[0] - p1[0]) * frac;
@@ -623,18 +739,24 @@ function generateHistoryData() {
             if (course < 0) course += 360;
 
             let speed = 15 + (Math.random() * 3 - 1.5);
-            let wind = 10 + Math.random() * 8; // dummy wind speed
+            let wind = 10 + Math.random() * 8; 
             let windDir = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.floor(Math.random() * 8)];
             let status = 'green';
 
-            if (lat > 0.5 && lat < 2.0) {
+            if (isAnchoring && i > 10 && i < 40) {
+                speed = Math.random() * 0.5;
+                status = 'purple';
+                lat = p1[0] + (p2[0] - p1[0]) * (10/pointsPerSegment) + (Math.random()-0.5)*0.005;
+                lon = p1[1] + (p2[1] - p1[1]) * (10/pointsPerSegment) + (Math.random()-0.5)*0.005;
+                course = Math.random() * 360;
+            } else if (lat > 0.5 && lat < 2.0) {
                 speed = 5 + Math.random() * 4;
                 status = speed < 7 ? 'red' : 'orange';
             }
 
             historyData.push({
-                lat: lat + (Math.random()-0.5)*0.02, 
-                lon: lon + (Math.random()-0.5)*0.02, 
+                lat: lat + (Math.random()-0.5)*0.01, 
+                lon: lon + (Math.random()-0.5)*0.01, 
                 speed: speed, 
                 course: course,
                 wind: wind,
@@ -642,7 +764,7 @@ function generateHistoryData() {
                 status: status, 
                 timestamp: currentTime
             });
-            currentTime += timeStep;
+            currentTime += (isAnchoring && i > 10 && i < 40) ? timeStep * 2 : timeStep;
         }
     }
     progressSlider.max = historyData.length - 1;
@@ -1780,18 +1902,12 @@ const dummyRoles = [
     { name: 'Viewer', desc: 'Read-only access to dashboard and map.', users: 3 }
 ];
 
-const dummyPermissions = [
-    { module: 'Vessel Tracking', admin: true, operator: true, supervisor: true, analyst: true, viewer: true },
-    { module: 'Geofence Management', admin: true, operator: false, supervisor: true, analyst: false, viewer: false },
-    { module: 'Alert Acknowledgment', admin: true, operator: true, supervisor: true, analyst: false, viewer: false },
-    { module: 'Analytics Dashboard', admin: true, operator: false, supervisor: true, analyst: true, viewer: false },
-    { module: 'User Management', admin: true, operator: false, supervisor: false, analyst: false, viewer: false }
-];
+// Removed dummyPermissions
 
 function initSettings() {
     renderUsersTable();
     renderRolesTable();
-    renderPermissionsTable();
+    loadPermissions();
 
     // Tab Logic
     const tabs = document.querySelectorAll('.settings-tab');
@@ -1810,15 +1926,6 @@ function initSettings() {
         });
     });
 
-    // Add User Modal
-    const addUserBtn = document.getElementById('btn-add-user');
-    const addUserModal = document.getElementById('add-user-modal');
-    const closeAddUser = document.getElementById('close-add-user-modal');
-    const cancelAddUser = document.getElementById('cancel-add-user-btn');
-
-    addUserBtn.addEventListener('click', () => addUserModal.classList.remove('view-hidden'));
-    closeAddUser.addEventListener('click', () => addUserModal.classList.add('view-hidden'));
-    cancelAddUser.addEventListener('click', () => addUserModal.classList.add('view-hidden'));
 
     // Global click for action dropdown
     document.addEventListener('click', (e) => {
@@ -1837,20 +1944,6 @@ function initSettings() {
     isSettingsInitialized = true;
 }
 
-function renderUsersTable() {
-    const tbody = document.getElementById('users-table-body');
-    tbody.innerHTML = dummyUsers.map(u => `
-        <tr>
-            <td>${u.username}</td>
-            <td>${u.fullName}</td>
-            <td>${u.email}</td>
-            <td>${u.role}</td>
-            <td><span class="${u.status === 'Active' ? 'badge-active' : 'badge-inactive'}">${u.status}</span></td>
-            <td>${u.lastLogin}</td>
-            <td style="text-align: center;"><button class="btn-action-dots" style="background:none; border:none; cursor:pointer; color:var(--text-secondary);"><i class="fa-solid fa-ellipsis-vertical"></i></button></td>
-        </tr>
-    `).join('');
-}
 
 function renderRolesTable() {
     const tbody = document.getElementById('roles-table-body');
@@ -1864,21 +1957,227 @@ function renderRolesTable() {
     `).join('');
 }
 
+let permissionsList = [];
+let isPermissionsEditMode = false;
+
+async function loadPermissions() {
+    try {
+        const response = await fetch('/api/permissions');
+        if (response.ok) {
+            permissionsList = await response.json();
+            renderPermissionsTable();
+        }
+    } catch (err) {
+        console.error('Error loading permissions:', err);
+    }
+}
+
+window.togglePermission = function(moduleName, role) {
+    if (!isPermissionsEditMode) return;
+    const perm = permissionsList.find(p => p.module === moduleName);
+    if (perm) {
+        perm[role] = !perm[role];
+        renderPermissionsTable();
+    }
+};
+
 function renderPermissionsTable() {
     const tbody = document.getElementById('permissions-table-body');
     const check = '<i class="fa-solid fa-check" style="color: var(--status-green);"></i>';
     const cross = '<i class="fa-solid fa-minus" style="color: #cbd5e1;"></i>';
-    tbody.innerHTML = dummyPermissions.map(p => `
+    
+    tbody.innerHTML = permissionsList.map(p => {
+        const cellStyle = isPermissionsEditMode ? 'text-align: center; cursor: pointer; border: 1px dashed var(--border-color);' : 'text-align: center;';
+        return `
         <tr>
             <td><strong>${p.module}</strong></td>
-            <td style="text-align: center;">${p.admin ? check : cross}</td>
-            <td style="text-align: center;">${p.operator ? check : cross}</td>
-            <td style="text-align: center;">${p.supervisor ? check : cross}</td>
-            <td style="text-align: center;">${p.analyst ? check : cross}</td>
-            <td style="text-align: center;">${p.viewer ? check : cross}</td>
+            <td style="${cellStyle}" onclick="togglePermission('${p.module}', 'admin')">${p.admin ? check : cross}</td>
+            <td style="${cellStyle}" onclick="togglePermission('${p.module}', 'operator')">${p.operator ? check : cross}</td>
+            <td style="${cellStyle}" onclick="togglePermission('${p.module}', 'supervisor')">${p.supervisor ? check : cross}</td>
+            <td style="${cellStyle}" onclick="togglePermission('${p.module}', 'analyst')">${p.analyst ? check : cross}</td>
+            <td style="${cellStyle}" onclick="togglePermission('${p.module}', 'viewer')">${p.viewer ? check : cross}</td>
+        </tr>
+    `}).join('');
+}
+
+// --- USER MANAGEMENT CRUD ---
+let usersList = [];
+
+async function loadUsers() {
+    try {
+        const res = await fetch('/api/users');
+        usersList = await res.json();
+        renderUsersTable();
+    } catch (e) {
+        console.error('Failed to load users:', e);
+    }
+}
+
+function renderUsersTable() {
+    const tbody = document.getElementById('users-table-body');
+    if (!tbody) return;
+    
+    if (usersList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No users found.</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = usersList.map(u => `
+        <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 16px 24px;">${u.id}</td>
+            <td style="padding: 16px 24px;"><strong>${u.username}</strong></td>
+            <td style="padding: 16px 24px;"><span class="badge ${u.role === 'admin' ? 'red-badge' : 'badge-default'}">${u.role.toUpperCase()}</span></td>
+            <td style="padding: 16px 24px;">${u.created_by || '-'}</td>
+            <td style="padding: 16px 24px;">${new Date(u.created_at).toLocaleString()}</td>
+            <td style="padding: 16px 24px; text-align: center;">
+                <button class="ui-btn btn-outline" style="padding: 4px 8px;" onclick="openEditUserModal(${u.id})"><i class="fa-solid fa-pen"></i></button>
+                <button class="ui-btn btn-outline" style="padding: 4px 8px; color: var(--status-red); border-color: var(--status-red);" onclick="deleteUser(${u.id})"><i class="fa-solid fa-trash"></i></button>
+            </td>
         </tr>
     `).join('');
 }
 
+function initUserManagement() {
+    const btnAddUser = document.getElementById('btn-add-user');
+    const userModal = document.getElementById('user-modal');
+    const closeUserModal = document.getElementById('close-user-modal');
+    const cancelUserModal = document.getElementById('cancel-user-modal');
+    const userForm = document.getElementById('user-form');
+    
+    if(btnAddUser) {
+        btnAddUser.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log("Add User button clicked!");
+            document.getElementById('user-modal-title').innerText = 'Add New User';
+            document.getElementById('user-id').value = '';
+            document.getElementById('user-username').value = '';
+            document.getElementById('user-username').readOnly = false;
+            document.getElementById('user-password').value = '';
+            document.getElementById('user-password').required = true;
+            document.getElementById('user-password-hint').style.display = 'none';
+            document.getElementById('user-role').value = 'viewer';
+            userModal.classList.remove('view-hidden');
+        });
+    }
+    
+    const closeModal = () => userModal.classList.add('view-hidden');
+    if(closeUserModal) closeUserModal.addEventListener('click', closeModal);
+    if(cancelUserModal) cancelUserModal.addEventListener('click', closeModal);
+
+    // --- PERMISSIONS CRUD ---
+    const btnEditPerms = document.getElementById('btn-edit-permissions');
+    const btnSavePerms = document.getElementById('btn-save-permissions');
+    
+    if (btnEditPerms) {
+        btnEditPerms.addEventListener('click', () => {
+            isPermissionsEditMode = true;
+            btnEditPerms.classList.add('view-hidden');
+            btnSavePerms.classList.remove('view-hidden');
+            renderPermissionsTable();
+        });
+    }
+
+    if (btnSavePerms) {
+        btnSavePerms.addEventListener('click', async () => {
+            const updates = [];
+            const roles = ['admin', 'operator', 'supervisor', 'analyst', 'viewer'];
+            permissionsList.forEach(p => {
+                roles.forEach(r => {
+                    updates.push({ module: p.module, role: r, is_granted: p[r] });
+                });
+            });
+
+            try {
+                const response = await fetch('/api/permissions', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updates)
+                });
+                if (response.ok) {
+                    showToast('Success', 'Permissions updated successfully');
+                    isPermissionsEditMode = false;
+                    btnSavePerms.classList.add('view-hidden');
+                    btnEditPerms.classList.remove('view-hidden');
+                    renderPermissionsTable();
+                } else {
+                    alert('Error saving permissions');
+                }
+            } catch (err) {
+                alert('Error saving permissions');
+            }
+        });
+    }
+    if(cancelUserModal) cancelUserModal.addEventListener('click', closeModal);
+    
+    if(userForm) {
+        userForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('user-id').value;
+            const username = document.getElementById('user-username').value;
+            const password = document.getElementById('user-password').value;
+            const role = document.getElementById('user-role').value;
+            
+            let currentUser = 'system';
+            const userNameEl = document.querySelector('.user-name');
+            if(userNameEl && !userNameEl.classList.contains('role-selector')) {
+                currentUser = userNameEl.innerText;
+            }
+            
+            try {
+                if (id) {
+                    // Update
+                    await fetch('/api/users/' + id, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ role, password })
+                    });
+                    showToast('User Updated', 'User role updated successfully');
+                } else {
+                    // Create
+                    await fetch('/api/users', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password, role, created_by: currentUser })
+                    });
+                    showToast('User Created', 'New user added successfully');
+                }
+                closeModal();
+                loadUsers();
+            } catch (err) {
+                alert('Error saving user: ' + err.message);
+            }
+        });
+    }
+}
+
+window.openEditUserModal = function(id) {
+    const user = usersList.find(u => u.id === id);
+    if(!user) return;
+    
+    document.getElementById('user-modal-title').innerText = 'Edit User';
+    document.getElementById('user-id').value = user.id;
+    document.getElementById('user-username').value = user.username;
+    document.getElementById('user-username').readOnly = true;
+    document.getElementById('user-password').value = '';
+    document.getElementById('user-password').required = false;
+    document.getElementById('user-password-hint').style.display = 'block';
+    document.getElementById('user-role').value = user.role;
+    
+    document.getElementById('user-modal').classList.remove('view-hidden');
+};
+
+window.deleteUser = async function(id) {
+    if(!confirm('Are you sure you want to delete this user?')) return;
+    try {
+        await fetch('/api/users/' + id, { method: 'DELETE' });
+        showToast('User Deleted', 'User has been removed');
+        loadUsers();
+    } catch (err) {
+        alert('Error deleting user');
+    }
+};
+
 // Start
+initUserManagement();
 init();
+

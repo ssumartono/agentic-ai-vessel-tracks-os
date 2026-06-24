@@ -8,7 +8,7 @@ module.exports = function startSimulator(db, wss) {
     const vessels = [
         { mmsi: '525000101', name: 'KMP JATRA I', type: 'Passenger', status: 'Underway', lat: -6.10, lon: 106.86, speed: 12, course: 45, dLat: 0.001, dLon: 0.001 },
         { mmsi: '525000102', name: 'MERATUS JAKARTA', type: 'Cargo', status: 'Underway', lat: -6.08, lon: 106.88, speed: 10, course: 180, dLat: -0.001, dLon: 0.0005 },
-        { mmsi: '525000103', name: 'TB. ENTEBE 01', type: 'Tug', status: 'Underway', lat: -6.11, lon: 106.90, speed: 5, course: 270, dLat: 0, dLon: -0.0008 },
+        { mmsi: '525000103', name: 'TB. ENTEBE 01', type: 'Tug', status: 'Underway', lat: -5.95, lon: 106.85, speed: 5, course: 270, dLat: 0, dLon: -0.0008 },
         { mmsi: '525000104', name: 'PERTAMINA GAS 1', type: 'Tanker', status: 'At Anchor', lat: -6.05, lon: 106.85, speed: 0.1, course: 10, dLat: 0.0001, dLon: -0.0001 },
         { mmsi: '525000105', name: 'KM. KELUD', type: 'Passenger', status: 'Underway', lat: -6.09, lon: 106.82, speed: 15, course: 90, dLat: 0.0005, dLon: 0.0015 },
     ];

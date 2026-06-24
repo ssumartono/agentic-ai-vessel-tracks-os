@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=4">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -48,18 +48,9 @@
                     <label>Username</label>
                     <input type="text" id="login-username" value="admin" required>
                 </div>
-                <div class="form-group">
+                <div class="form-group" style="margin-bottom: 24px;">
                     <label>Password</label>
-                    <input type="password" id="login-password" value="password" required>
-                </div>
-                <div class="form-group">
-                    <label>Role</label>
-                    <select id="login-role">
-                        <option value="Admin">Administrator</option>
-                        <option value="Operator">Operator</option>
-                        <option value="Analyst">Analyst</option>
-                        <option value="Viewer">Viewer</option>
-                    </select>
+                    <input type="password" id="login-password" value="@adm1n" required>
                 </div>
                 <button type="submit" class="btn-primary w-100">Access System</button>
             </form>
@@ -82,10 +73,11 @@
                 <a href="#" class="nav-item has-badge" data-target="alerts-view"><i class="fa-solid fa-bell"></i> <span>Alerts</span> <span class="badge" id="sidebar-alert-badge">12</span></a>
                 <a href="#" class="nav-item" data-target="history-view"><i class="fa-solid fa-clock-rotate-left"></i> <span>History</span></a>
                 <a href="#" class="nav-item" data-target="analytics-view"><i class="fa-solid fa-chart-simple"></i> <span>Analytics</span></a>
-                <a href="#" class="nav-item" data-target="settings-view"><i class="fa-solid fa-gear"></i> <span>Settings</span></a>
+                <a href="#" class="nav-item" data-target="settings-view"><i class="fa-solid fa-users-gear"></i> <span>Users & RBAC</span></a>
+                <a href="#" class="nav-item" data-target="about-view"><i class="fa-solid fa-circle-info"></i> <span>About</span></a>
             </nav>
             <div class="sidebar-footer">
-                <a href="#" class="nav-item"><i class="fa-solid fa-arrow-left"></i> <span>Collapse</span></a>
+                <a href="#" class="nav-item" id="sidebar-collapse-footer-btn"><i class="fa-solid fa-arrow-left"></i> <span>Collapse</span></a>
             </div>
         </aside>
 
@@ -117,6 +109,9 @@
                             <div class="user-role">Maritime Ops</div>
                         </div>
                     </div>
+                    <button id="btn-logout" title="Log Out" style="background: none; border: none; cursor: pointer; color: var(--text-secondary); margin-left: 16px; font-size: 1.2rem; transition: color 0.2s;">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
                 </div>
             </header>
 
@@ -637,7 +632,7 @@
                 <div class="page-header" style="margin-top:-10px;">
                     <h1 class="page-title">Vessel Detail</h1>
                     <div class="filter-actions">
-                        <button class="ui-btn btn-outline" style="color: var(--accent-blue);"><i class="fa-solid fa-location-dot"></i> Track on map</button>
+                        <button class="ui-btn btn-outline" id="track-on-map-btn" style="color: var(--accent-blue);"><i class="fa-solid fa-location-dot"></i> Track on map</button>
                         <button class="ui-btn btn-outline"><i class="fa-regular fa-star"></i> Add to Watchlist <i class="fa-solid fa-chevron-down" style="font-size:10px; margin-left:4px;"></i></button>
                     </div>
                 </div>
@@ -716,15 +711,15 @@
                 </div>
 
                 <!-- VESSEL TABS -->
-                <div class="card" style="margin-top: 20px; flex: 1; display: flex; flex-direction: column; padding: 0;">
-                    <div class="detail-tabs" style="padding: 16px 20px 0 20px; margin: 0; border-bottom: 1px solid var(--border-color); background: var(--bg-secondary); border-radius: 8px 8px 0 0;">
+                <div class="card" style="flex: 1; display: flex; flex-direction: column; padding: 0; min-height: 0;">
+                    <div class="detail-tabs" style="padding: 16px 20px 0 20px; margin: 0; border-bottom: 1px solid var(--border-color); background: var(--bg-secondary); border-radius: 8px 8px 0 0; flex-shrink: 0;">
                         <a href="#" class="tab-item vessel-tab active" data-tab="overview">Overview</a>
                         <a href="#" class="tab-item vessel-tab" data-tab="history">Track History</a>
                         <a href="#" class="tab-item vessel-tab" data-tab="alerts">Alerts</a>
                         <a href="#" class="tab-item vessel-tab" data-tab="geofences">Geofence Events</a>
                     </div>
                     
-                    <div class="vessel-tab-content" id="vessel-tab-overview" style="padding: 20px; flex: 1;">
+                    <div class="vessel-tab-content" id="vessel-tab-overview" style="padding: 20px; flex: 1; min-height: 0; overflow-y: auto;">
                         <!-- Overview Grid -->
                         <div class="overview-grid">
                             <div class="card info-card">
@@ -754,13 +749,13 @@
                         </div>
                     </div>
 
-                    <div class="vessel-tab-content view-hidden" id="vessel-tab-history" style="padding: 20px; flex: 1;">
+                    <div class="vessel-tab-content view-hidden" id="vessel-tab-history" style="padding: 20px; flex: 1; min-height: 0; overflow-y: auto;">
                         <div id="vessel-history-container" style="display: flex; flex-direction: column; gap: 16px;"></div>
                     </div>
-                    <div class="vessel-tab-content view-hidden" id="vessel-tab-alerts" style="padding: 20px; flex: 1;">
+                    <div class="vessel-tab-content view-hidden" id="vessel-tab-alerts" style="padding: 20px; flex: 1; min-height: 0; overflow-y: auto;">
                         <div id="vessel-alerts-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
                     </div>
-                    <div class="vessel-tab-content view-hidden" id="vessel-tab-geofences" style="padding: 20px; flex: 1;">
+                    <div class="vessel-tab-content view-hidden" id="vessel-tab-geofences" style="padding: 20px; flex: 1; min-height: 0; overflow-y: auto;">
                         <div id="vessel-geofences-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
                     </div>
                 </div>
@@ -968,10 +963,10 @@
                     <button class="ui-btn btn-outline" id="new-gf-btn" style="color: var(--accent-blue); border-color: var(--accent-blue); background: white;"><i class="fa-solid fa-plus"></i> New Geofence</button>
                 </div>
 
-                <div class="gf-main-grid">
+                <div class="gf-main-grid" style="flex: 1; min-height: 0;">
                     <!-- Left List Card -->
-                    <div class="card gf-list-card">
-                        <div class="gf-list-header">
+                    <div class="card gf-list-card" style="display: flex; flex-direction: column; min-height: 0;">
+                        <div class="gf-list-header" style="flex-shrink: 0;">
                             <div class="detail-tabs" style="margin:0; border-bottom: none; gap:0;">
                                 <a href="#" class="tab-item active" style="padding-bottom:12px; padding-right:12px;">Geofence List</a>
                             </div>
@@ -981,7 +976,7 @@
                                 <button class="ui-btn btn-outline"><i class="fa-solid fa-bars-staggered"></i> Filters</button>
                             </div>
                         </div>
-                        <div class="table-responsive" style="overflow: visible;">
+                        <div class="table-responsive" style="flex: 1; overflow-y: auto; min-height: 0;">
                             <table class="data-table gf-table">
                                 <thead>
                                     <tr>
@@ -1005,7 +1000,7 @@
                             </div>
                         </div>
                         
-                        <div class="pagination">
+                        <div class="pagination" style="flex-shrink: 0;">
                             <div class="pagination-info">Showing 1 to 8 of 28 geofences</div>
                             <div class="pagination-controls">
                                 <button class="page-btn"><i class="fa-solid fa-chevron-left"></i></button>
@@ -1019,15 +1014,15 @@
                     </div>
 
                     <!-- Right Column -->
-                    <div class="gf-right-column">
-                        <div class="card gf-preview-card">
+                    <div class="gf-right-column" style="display: flex; flex-direction: column; gap: 24px; min-height: 0;">
+                        <div class="card gf-preview-card" style="display: flex; flex-direction: column; flex-shrink: 0;">
                             <h3 class="card-title" style="padding: 16px 20px;">Geofence Preview</h3>
                             <div id="gf-preview-map" style="height: 250px; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px;"></div>
                         </div>
                         
-                        <div class="card gf-details-card">
-                            <h3 class="card-title" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color);">Geofence Details</h3>
-                            <div class="gf-details-content" id="gf-details-content">
+                        <div class="card gf-details-card" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+                            <h3 class="card-title" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); flex-shrink: 0;">Geofence Details</h3>
+                            <div class="gf-details-content" id="gf-details-content" style="flex: 1; overflow-y: auto; min-height: 0; padding: 20px;">
                                 <!-- Injected by JS -->
                             </div>
                         </div>
@@ -1130,27 +1125,27 @@
                 </div>
 
                 <!-- MAIN CHARTS GRID 2x2 -->
-                <div class="analytics-main-grid" style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; gap: 24px;">
+                <div class="analytics-main-grid" style="flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); gap: 24px;">
                     <!-- Heatmap -->
-                    <div class="card" style="display: flex; flex-direction: column; padding: 20px; height: 350px;">
+                    <div class="card" style="display: flex; flex-direction: column; padding: 20px; min-height: 0; height: 100%;">
                         <h3 style="font-size: 1rem; margin: 0 0 16px 0; color: var(--text-primary);">Vessel Density (Heatmap)</h3>
-                        <div id="analytics-heatmap" style="flex: 1; border-radius: 8px; overflow: hidden; background: #e2e8f0; position: relative;">
+                        <div id="analytics-heatmap" style="flex: 1; min-height: 0; border-radius: 8px; overflow: hidden; background: #e2e8f0; position: relative;">
                              <div style="position: absolute; bottom: 10px; right: 10px; background: rgba(255,255,255,0.8); padding: 4px 8px; font-size: 0.75rem; border: 1px solid #ccc; z-index: 1000; border-radius: 4px;">500 NM</div>
                         </div>
                     </div>
 
                     <!-- Line Chart -->
-                    <div class="card" style="display: flex; flex-direction: column; padding: 20px; height: 350px;">
+                    <div class="card" style="display: flex; flex-direction: column; padding: 20px; min-height: 0; height: 100%;">
                         <h3 style="font-size: 1rem; margin: 0 0 16px 0; color: var(--text-primary);">Vessel Count Over Time</h3>
-                        <div style="flex: 1; position: relative;">
+                        <div style="flex: 1; position: relative; min-height: 0;">
                             <canvas id="vesselCountChart"></canvas>
                         </div>
                     </div>
 
                     <!-- Doughnut Chart -->
-                    <div class="card" style="display: flex; flex-direction: column; padding: 20px; height: 350px;">
+                    <div class="card" style="display: flex; flex-direction: column; padding: 20px; min-height: 0; height: 100%;">
                         <h3 style="font-size: 1rem; margin: 0 0 16px 0; color: var(--text-primary);">Top Vessel Types</h3>
-                        <div style="flex: 1; display: flex; align-items: center; justify-content: center; position: relative;">
+                        <div style="flex: 1; display: flex; align-items: center; justify-content: center; position: relative; min-height: 0;">
                             <div style="width: 50%; position: relative; height: 100%;">
                                 <canvas id="vesselTypesChart"></canvas>
                                 <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
@@ -1169,7 +1164,7 @@
                     </div>
 
                     <!-- Stacked Bar Chart -->
-                    <div class="card" style="display: flex; flex-direction: column; padding: 20px; height: 350px;">
+                    <div class="card" style="display: flex; flex-direction: column; padding: 20px; min-height: 0; height: 100%;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                             <h3 style="font-size: 1rem; margin: 0; color: var(--text-primary);">Alert Trend</h3>
                             <div style="display: flex; gap: 12px;">
@@ -1178,7 +1173,7 @@
                                 <div style="display: flex; align-items: center; gap: 6px;"><span style="width:10px;height:10px;background:#3b82f6;border-radius:2px;"></span><span style="font-size:0.75rem; color: var(--text-secondary);">Info</span></div>
                             </div>
                         </div>
-                        <div style="flex: 1; position: relative;">
+                        <div style="flex: 1; position: relative; min-height: 0;">
                             <canvas id="alertTrendChart"></canvas>
                         </div>
                     </div>
@@ -1212,12 +1207,11 @@
                         <table class="settings-table" style="width: 100%; border-collapse: collapse;">
                             <thead>
                                 <tr style="border-bottom: 1px solid var(--border-color); text-align: left; color: var(--text-secondary); font-size: 0.85rem; background: #fafafa;">
+                                    <th style="padding: 16px 24px; font-weight: 500;">ID</th>
                                     <th style="padding: 16px 24px; font-weight: 500;">Username</th>
-                                    <th style="padding: 16px 24px; font-weight: 500;">Full Name</th>
-                                    <th style="padding: 16px 24px; font-weight: 500;">Email</th>
                                     <th style="padding: 16px 24px; font-weight: 500;">Role</th>
-                                    <th style="padding: 16px 24px; font-weight: 500;">Status</th>
-                                    <th style="padding: 16px 24px; font-weight: 500;">Last Login</th>
+                                    <th style="padding: 16px 24px; font-weight: 500;">Created By</th>
+                                    <th style="padding: 16px 24px; font-weight: 500;">Created At</th>
                                     <th style="padding: 16px 24px; font-weight: 500; text-align: center;">Actions</th>
                                 </tr>
                             </thead>
@@ -1260,6 +1254,10 @@
 
                 <!-- Permissions Tab Content -->
                 <div id="settings-tab-permissions" class="settings-tab-content view-hidden">
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 16px;">
+                        <button class="ui-btn btn-outline" id="btn-edit-permissions" style="color: var(--primary-blue); border-color: var(--border-color);"><i class="fa-solid fa-pen"></i> Edit Permissions</button>
+                        <button class="ui-btn btn-primary view-hidden" id="btn-save-permissions" style="margin-left: 8px;"><i class="fa-solid fa-save"></i> Save Permissions</button>
+                    </div>
                     <div class="card" style="padding: 0; overflow: visible; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border-color);">
                         <table class="settings-table" style="width: 100%; border-collapse: collapse;">
                             <thead>
@@ -1280,6 +1278,64 @@
                 </div>
 
             </div> <!-- /settings-view -->
+
+            <!-- =============================== -->
+            <!-- ABOUT VIEW -->
+            <!-- =============================== -->
+            <div class="content-wrapper view-hidden" id="about-view" style="padding: 32px 40px; background: #ffffff; overflow-y: auto; display: flex; flex-direction: column;">
+                <div style="margin-bottom: 24px;">
+                    <div style="font-size: 0.85rem; color: var(--primary-blue); font-weight: 500; margin-bottom: 8px;">Information</div>
+                    <h1 style="font-size: 1.75rem; color: var(--text-primary); margin: 0; font-weight: 700;">About VesselTrack OS</h1>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; flex: 1; min-height: 0;">
+                    <!-- Cards for Dashboard, Vessels, Map, Geofences, Alerts, History, Analytics, Users & RBAC -->
+                    <div class="card" data-about-target="dashboard-view" style="display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--border-color); box-shadow: none;">
+                        <div style="color: var(--primary-blue); font-size: 1.5rem;"><i class="fa-solid fa-house"></i></div>
+                        <h3 style="font-size: 1.1rem; margin:0;">Dashboard</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin:0;">Pusat kendali utama yang menyajikan ringkasan seluruh status armada, aktivitas terkini, dan metrik operasional secara real-time.</p>
+                    </div>
+                    <div class="card" data-about-target="vessels-view" style="display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--border-color); box-shadow: none;">
+                        <div style="color: var(--primary-blue); font-size: 1.5rem;"><i class="fa-solid fa-ship"></i></div>
+                        <h3 style="font-size: 1.1rem; margin:0;">Vessels</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin:0;">Direktori lengkap seluruh armada kapal dengan fitur pencarian dan penyaringan data (tipe, status) serta akses profil detail tiap kapal.</p>
+                    </div>
+                    <div class="card" data-about-target="map-view" style="display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--border-color); box-shadow: none;">
+                        <div style="color: var(--primary-blue); font-size: 1.5rem;"><i class="fa-solid fa-map"></i></div>
+                        <h3 style="font-size: 1.1rem; margin:0;">Live Map</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin:0;">Pemantauan visual posisi seluruh kapal secara live di atas peta interaktif. Dilengkapi pelacakan rute (track) dan popup info metrik kapal.</p>
+                    </div>
+                    <div class="card" data-about-target="geofences-view" style="display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--border-color); box-shadow: none;">
+                        <div style="color: var(--primary-blue); font-size: 1.5rem;"><i class="fa-solid fa-draw-polygon"></i></div>
+                        <h3 style="font-size: 1.1rem; margin:0;">Geofences</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin:0;">Fitur manajemen batas area (polygon). Atur notifikasi peringatan saat kapal memasuki/meninggalkan zona labuh, maupun area bahaya.</p>
+                    </div>
+                    <div class="card" data-about-target="alerts-view" style="display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--border-color); box-shadow: none;">
+                        <div style="color: var(--primary-blue); font-size: 1.5rem;"><i class="fa-solid fa-bell"></i></div>
+                        <h3 style="font-size: 1.1rem; margin:0;">Alerts</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin:0;">Sistem peringatan dini (Early Warning). Mencatat dan merespons segala anomali perjalanan, pelanggaran area, hingga kehilangan sinyal AIS.</p>
+                    </div>
+                    <div class="card" data-about-target="history-view" style="display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--border-color); box-shadow: none;">
+                        <div style="color: var(--primary-blue); font-size: 1.5rem;"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                        <h3 style="font-size: 1.1rem; margin:0;">History (Playback)</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin:0;">Perekam jejak perjalanan kapal. Gunakan slider timeline interaktif untuk memutar ulang (playback) rute yang telah dilalui secara historis.</p>
+                    </div>
+                    <div class="card" data-about-target="analytics-view" style="display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--border-color); box-shadow: none;">
+                        <div style="color: var(--primary-blue); font-size: 1.5rem;"><i class="fa-solid fa-chart-simple"></i></div>
+                        <h3 style="font-size: 1.1rem; margin:0;">Analytics</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin:0;">Visualisasi kepadatan lintas laut (Heatmap) dan analitik tingkat lanjut untuk membantu optimasi operasional dan pelayaran armada Anda.</p>
+                    </div>
+                    <div class="card" data-about-target="settings-view" style="display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--border-color); box-shadow: none;">
+                        <div style="color: var(--primary-blue); font-size: 1.5rem;"><i class="fa-solid fa-users-gear"></i></div>
+                        <h3 style="font-size: 1.1rem; margin:0;">Users & RBAC</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin:0;">Pusat administrasi kontrol akses (Role-Based Access Control). Mengatur wewenang setiap personel sesuai peran untuk mengakses modul.</p>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; margin-top: 24px; flex-shrink: 0;">
+                    VesselTrack OS MVP &copy; 2026 - Developed with Agentic AI System
+                </div>
+            </div> <!-- /about-view -->
 
         </main>
     </div>
@@ -1377,8 +1433,44 @@
         <div class="dropdown-item" style="padding: 10px 16px; cursor: pointer; font-size: 0.875rem; color: var(--text-primary);"><i class="fa-solid fa-key" style="margin-right: 8px; color: var(--text-secondary);"></i> Reset Password</div>
         <div class="dropdown-item" style="padding: 10px 16px; cursor: pointer; font-size: 0.875rem; color: var(--status-red); border-top: 1px solid var(--border-color);"><i class="fa-solid fa-trash" style="margin-right: 8px; color: var(--status-red);"></i> Delete</div>
     </div>
+    <!-- User Modal (Add/Edit) -->
+    <div class="modal-overlay view-hidden" id="user-modal" style="z-index: 10000;">
+        <div class="modal-container" style="width: 450px; max-width: 90vw; background: white; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden;">
+            <div style="padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary);">
+                <h3 style="margin: 0; font-size: 1.25rem;" id="user-modal-title">Add New User</h3>
+                <button class="close-modal-btn" id="close-user-modal" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-secondary);"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <form id="user-form" style="padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+                <input type="hidden" id="user-id">
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Username</label>
+                    <input type="text" id="user-username" class="ui-input" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px;" placeholder="Username" required>
+                </div>
+                <div class="form-group" id="user-password-group">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Password</label>
+                    <input type="password" id="user-password" class="ui-input" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px;" placeholder="Password">
+                    <small style="color: var(--text-secondary); display: none;" id="user-password-hint">Leave blank to keep current password</small>
+                </div>
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Role</label>
+                    <select id="user-role" class="ui-select" style="width: 100%; padding: 10px;" required>
+                        <option value="admin">Administrator</option>
+                        <option value="operator">Operator</option>
+                        <option value="analyst">Analyst</option>
+                        <option value="viewer">Viewer</option>
+                    </select>
+                </div>
+            </form>
+            
+            <div style="padding: 16px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px; background: var(--bg-secondary);">
+                <button class="btn-outline" id="cancel-user-modal" type="button">Cancel</button>
+                <button class="btn-primary" id="save-user-modal" type="submit" form="user-form">Save User</button>
+            </div>
+        </div>
+    </div>
 
     <!-- App JS -->
-    <script src="js/app.js?v=2"></script>
+    <script src="js/app.js?v=8"></script>
 </body>
 </html>

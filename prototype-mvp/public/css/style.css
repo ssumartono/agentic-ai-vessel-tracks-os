@@ -836,6 +836,12 @@ input:checked + .slider:before { transform: translateX(16px); }
 .drawer-header { padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--bg-secondary); }
 .drawer-body { overflow-y: auto; flex: 1; }
 
+/* ========================================== */
+/* MODAL COMPONENT */
+/* ========================================== */
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.5); z-index: 10000; display: flex; justify-content: center; align-items: center; }
+.modal-overlay.view-hidden { display: none !important; }
+
 /* =========================================
    PHASE 4: LOADING, EMPTY STATES, TOASTS
    ========================================= */
